@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Torray.App/Torray.App.csproj" />
+    <Project Path="src/Torray.Domain/Torray.Domain.csproj" />
+    <Project Path="src/Torray.Infrastructure/Torray.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Torray.UnitTests/Torray.UnitTests.csproj" />
+  </Folder>
+</Solution>

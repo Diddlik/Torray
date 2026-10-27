@@ -1,0 +1,30 @@
+<Window x:Class="Torray.App.FlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Torray.App"
+        Title="{StaticResource AppName}"
+        Width="420" Height="600"
+        WindowStyle="None" ResizeMode="NoResize"
+        ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="Manual">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="{StaticResource AppName}" FontSize="20" FontWeight="SemiBold" />
+            <TextBlock Text="{StaticResource FlyoutNotConfigured}" Margin="0,4,0,0" Opacity="0.7" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Text="{StaticResource FlyoutEmpty}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7" />
+
+        <DockPanel Grid.Row="2">
+            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" />
+            <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
+        </DockPanel>
+    </Grid>
+</Window>

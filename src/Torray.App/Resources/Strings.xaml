@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:String x:Key="AppName">Torray</sys:String>
+
+    <sys:String x:Key="TrayOpen">Open</sys:String>
+    <sys:String x:Key="TrayAbout">About Torray</sys:String>
+    <sys:String x:Key="TrayExit">Exit</sys:String>
+
+    <sys:String x:Key="FlyoutNotConfigured">No server configured</sys:String>
+    <sys:String x:Key="FlyoutEmpty">No torrents</sys:String>
+    <sys:String x:Key="FlyoutAbout">About</sys:String>
+
+    <sys:String x:Key="AboutTitle">About Torray</sys:String>
+    <sys:String x:Key="AboutLicense">Licensed under the MIT License.</sys:String>
+    <sys:String x:Key="AboutCredits">Third-party libraries</sys:String>
+    <sys:String x:Key="AboutClose">Close</sys:String>
+</ResourceDictionary>
