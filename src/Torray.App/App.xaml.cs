@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -8,10 +9,16 @@ using Forms = System.Windows.Forms;
 
 namespace Torray.App;
 
-public partial class App(ISettingsStore settingsStore, ILogger<App> logger) : Application
+public partial class App(
+    ISettingsStore settingsStore,
+    ISecretStore secretStore,
+    ITransmissionRpcClientFactory rpcClientFactory,
+    ILogger<App> logger) : Application
 {
+    private AppSettings _settings = new();
     private FlyoutWindow? _flyout;
     private Forms.NotifyIcon? _trayIcon;
+    private bool _connectionDialogOpen;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -19,8 +26,9 @@ public partial class App(ISettingsStore settingsStore, ILogger<App> logger) : Ap
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-        var settings = await LoadSettingsAsync();
-        _flyout = new FlyoutWindow(settings.HideFlyoutOnDeactivate);
+        _settings = await LoadSettingsAsync();
+        _flyout = new FlyoutWindow(_settings.HideFlyoutOnDeactivate);
+        _flyout.SetServer(_settings.Connection?.Host);
         _trayIcon = CreateTrayIcon();
     }
 
@@ -34,6 +42,73 @@ public partial class App(ISettingsStore settingsStore, ILogger<App> logger) : Ap
     {
         ExitApplication();
         base.OnSessionEnding(e);
+    }
+
+    public static void ShowAbout() => new AboutWindow().ShowDialog();
+
+    public async void ShowConnection()
+    {
+        // The tray menu stays usable while a modal dialog runs, so guard against a second dialog.
+        if (_connectionDialogOpen)
+        {
+            return;
+        }
+
+        _connectionDialogOpen = true;
+        try
+        {
+            var existing = _settings.Connection;
+            var password = existing is null ? null : await LoadPasswordAsync(existing.Id);
+            var viewModel = new ConnectionViewModel(existing, password, rpcClientFactory);
+            if (new ConnectionWindow(viewModel).ShowDialog() == true && viewModel.Result is var (connection, newPassword))
+            {
+                await SaveConnectionAsync(connection, newPassword);
+            }
+        }
+        finally
+        {
+            _connectionDialogOpen = false;
+        }
+    }
+
+    private async Task SaveConnectionAsync(ConnectionSettings connection, string? password)
+    {
+        try
+        {
+            if (password is null)
+            {
+                secretStore.Delete(connection.Id);
+            }
+            else
+            {
+                await secretStore.SetAsync(connection.Id, password);
+            }
+
+            var settings = _settings with { Connection = connection };
+            await settingsStore.SaveAsync(settings);
+            _settings = settings;
+            _flyout?.SetServer(connection.Host);
+            logger.LogInformation("Connection settings saved");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            logger.LogError(ex, "Connection settings could not be saved");
+            MessageBox.Show(Strings.Get("ConnectionSaveFailed"), Strings.Get("AppName"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task<string?> LoadPasswordAsync(Guid id)
+    {
+        try
+        {
+            return await secretStore.GetAsync(id);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            // Happens when the profile moved to another user or machine; DPAPI data cannot be decrypted there.
+            logger.LogWarning(ex, "Stored password could not be read");
+            return null;
+        }
     }
 
     private async Task<AppSettings> LoadSettingsAsync()
@@ -52,15 +127,17 @@ public partial class App(ISettingsStore settingsStore, ILogger<App> logger) : Ap
     private Forms.NotifyIcon CreateTrayIcon()
     {
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add(Text("TrayOpen"), null, (_, _) => _flyout?.ShowNearTray());
-        menu.Items.Add(Text("TrayAbout"), null, (_, _) => ShowAbout());
+        menu.Items.Add(Strings.Get("TrayOpen"), null, (_, _) => _flyout?.ShowNearTray());
+        menu.Items.Add(Strings.Get("TrayConnection"), null, (_, _) => ShowConnection());
+        menu.Items.Add(Strings.Get("TrayAbout"), null, (_, _) => ShowAbout());
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(Text("TrayExit"), null, (_, _) => ExitApplication());
+        menu.Items.Add(Strings.Get("TrayExit"), null, (_, _) => ExitApplication());
 
+        using var iconStream = GetResourceStream(new Uri("pack://application:,,,/Assets/Torray.ico")).Stream;
         var icon = new Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
-            Text = Text("AppName"),
+            Icon = new System.Drawing.Icon(iconStream, Forms.SystemInformation.SmallIconSize),
+            Text = Strings.Get("AppName"),
             ContextMenuStrip = menu,
             Visible = true,
         };
@@ -74,15 +151,11 @@ public partial class App(ISettingsStore settingsStore, ILogger<App> logger) : Ap
         return icon;
     }
 
-    public static void ShowAbout() => new AboutWindow().ShowDialog();
-
     private void ExitApplication()
     {
         _flyout?.AllowClose();
         Shutdown();
     }
-
-    private string Text(string key) => (string)FindResource(key);
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {

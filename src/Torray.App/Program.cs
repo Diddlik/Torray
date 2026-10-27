@@ -46,6 +46,8 @@ internal static class Program
             builder.Services.AddSerilog();
             builder.Services.AddSingleton<ISettingsStore>(
                 new JsonSettingsStore(Path.Combine(dataDirectory, "settings.json")));
+            builder.Services.AddSingleton<ISecretStore>(new DpapiSecretStore(Path.Combine(dataDirectory, "secrets")));
+            builder.Services.AddSingleton<ITransmissionRpcClientFactory, TransmissionRpcClientFactory>();
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();

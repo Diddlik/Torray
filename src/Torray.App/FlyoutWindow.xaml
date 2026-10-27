@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Torray.App"
         Title="{StaticResource AppName}"
+        Icon="Assets/Torray.ico"
         Width="420" Height="600"
         WindowStyle="None" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True"
@@ -16,14 +17,15 @@
 
         <StackPanel Grid.Row="0">
             <TextBlock Text="{StaticResource AppName}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock Text="{StaticResource FlyoutNotConfigured}" Margin="0,4,0,0" Opacity="0.7" />
+            <TextBlock x:Name="ServerText" Margin="0,4,0,0" Opacity="0.7" />
         </StackPanel>
 
         <TextBlock Grid.Row="1" Text="{StaticResource FlyoutEmpty}"
                    HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7" />
 
         <DockPanel Grid.Row="2">
-            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" />
+            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
+            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" />
             <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
         </DockPanel>
     </Grid>

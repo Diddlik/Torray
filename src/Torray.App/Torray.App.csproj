@@ -10,7 +10,14 @@
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <AssemblyName>Torray</AssemblyName>
     <RootNamespace>Torray.App</RootNamespace>
+    <ApplicationIcon>Assets\Torray.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <!-- Torray.svg is the icon source; regenerate the .ico with:
+       magick -background none -density 384 Torray.svg -define icon:auto-resize=256,64,48,40,32,24,20,16 Torray.ico -->
+  <ItemGroup>
+    <Resource Include="Assets\Torray.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
@@ -29,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />

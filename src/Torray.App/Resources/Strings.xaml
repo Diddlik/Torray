@@ -4,12 +4,41 @@
     <sys:String x:Key="AppName">Torray</sys:String>
 
     <sys:String x:Key="TrayOpen">Open</sys:String>
+    <sys:String x:Key="TrayConnection">Connection…</sys:String>
     <sys:String x:Key="TrayAbout">About Torray</sys:String>
     <sys:String x:Key="TrayExit">Exit</sys:String>
 
     <sys:String x:Key="FlyoutNotConfigured">No server configured</sys:String>
     <sys:String x:Key="FlyoutEmpty">No torrents</sys:String>
+    <sys:String x:Key="FlyoutConnection">Connection</sys:String>
     <sys:String x:Key="FlyoutAbout">About</sys:String>
+
+    <sys:String x:Key="ConnectionTitle">Transmission connection</sys:String>
+    <sys:String x:Key="ConnectionScheme">_Protocol</sys:String>
+    <sys:String x:Key="ConnectionHost">_Host</sys:String>
+    <sys:String x:Key="ConnectionPort">P_ort</sys:String>
+    <sys:String x:Key="ConnectionPath">RPC p_ath</sys:String>
+    <sys:String x:Key="ConnectionUsername">_Username (optional)</sys:String>
+    <sys:String x:Key="ConnectionPassword">Pass_word (optional)</sys:String>
+    <sys:String x:Key="ConnectionTest">_Test connection</sys:String>
+    <sys:String x:Key="ConnectionSave">Save</sys:String>
+    <sys:String x:Key="ConnectionCancel">Cancel</sys:String>
+    <sys:String x:Key="ConnectionTesting">Connecting…</sys:String>
+    <sys:String x:Key="ConnectionTestSucceeded">Connected to Transmission {0}.</sys:String>
+    <sys:String x:Key="ConnectionInvalidHost">Enter a host name or IP address.</sys:String>
+    <sys:String x:Key="ConnectionInvalidPort">Enter a port between 1 and 65535.</sys:String>
+    <sys:String x:Key="ConnectionInvalidPath">The RPC path must start with "/".</sys:String>
+    <sys:String x:Key="ConnectionSaveFailed">The connection could not be saved. Check that %LOCALAPPDATA%\Torray is writable and try again.</sys:String>
+
+    <sys:String x:Key="RpcErrorUnreachable">Cannot reach the server. Check host, port, and that Transmission is running.</sys:String>
+    <sys:String x:Key="RpcErrorTimeout">The server did not respond in time. Check the network and try again.</sys:String>
+    <sys:String x:Key="RpcErrorCertificateInvalid">The server's HTTPS certificate is not trusted. Install a valid certificate or use a trusted reverse proxy.</sys:String>
+    <sys:String x:Key="RpcErrorUnauthorized">Wrong username or password.</sys:String>
+    <sys:String x:Key="RpcErrorForbidden">Access denied. Add this computer to Transmission's rpc-whitelist or host-whitelist.</sys:String>
+    <sys:String x:Key="RpcErrorNotFound">No Transmission RPC endpoint at this path. The default is /transmission/rpc.</sys:String>
+    <sys:String x:Key="RpcErrorInvalidResponse">The server answered, but not like Transmission. Check host, port, and RPC path.</sys:String>
+    <sys:String x:Key="RpcErrorServerError">Transmission reported an error: {0}</sys:String>
+    <sys:String x:Key="RpcErrorUnsupportedVersion">This Transmission version is not supported. Torray needs Transmission 4.0 or newer.</sys:String>
 
     <sys:String x:Key="AboutTitle">About Torray</sys:String>
     <sys:String x:Key="AboutLicense">Licensed under the MIT License.</sys:String>

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Torray.App"
         Title="{StaticResource AboutTitle}"
+        Icon="Assets/Torray.ico"
         SizeToContent="WidthAndHeight" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True">
     <StackPanel Margin="24" MinWidth="320">
@@ -12,7 +13,9 @@
         <TextBlock Text="{StaticResource AboutLicense}" />
 
         <TextBlock Text="{StaticResource AboutCredits}" FontWeight="SemiBold" Margin="0,16,0,8" />
+        <TextBlock Text="CommunityToolkit.Mvvm — MIT" />
         <TextBlock Text="Microsoft.Extensions.Hosting — MIT" />
+        <TextBlock Text="System.Security.Cryptography.ProtectedData — MIT" />
         <TextBlock Text="Serilog, Serilog.Extensions.Hosting, Serilog.Sinks.File — Apache-2.0" />
         <TextBlock Text="Velopack — MIT" />
 

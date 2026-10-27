@@ -110,5 +110,9 @@ public partial class FlyoutWindow : Window
             : work.Bottom / dpi.DpiScaleY - Height - EdgeMargin;
     }
 
+    public void SetServer(string? host) => ServerText.Text = host ?? Strings.Get("FlyoutNotConfigured");
+
     private void OnAboutClick(object sender, RoutedEventArgs e) => App.ShowAbout();
+
+    private void OnConnectionClick(object sender, RoutedEventArgs e) => ((App)Application.Current).ShowConnection();
 }
