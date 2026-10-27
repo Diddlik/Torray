@@ -31,7 +31,14 @@ public sealed class DpapiSecretStore(string directory) : ISecretStore
         File.Move(tempPath, path, overwrite: true);
     }
 
-    public void Delete(Guid id) => File.Delete(PathFor(id));
+    public void Delete(Guid id)
+    {
+        // File.Delete ignores a missing file but throws when the directory is missing too.
+        if (Directory.Exists(directory))
+        {
+            File.Delete(PathFor(id));
+        }
+    }
 
     private string PathFor(Guid id) => Path.Combine(directory, id.ToString("N") + ".bin");
 }

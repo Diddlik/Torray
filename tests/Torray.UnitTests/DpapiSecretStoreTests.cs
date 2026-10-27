@@ -29,6 +29,12 @@ public sealed class DpapiSecretStoreTests : IDisposable
     }
 
     [Fact]
+    public void Delete_succeeds_before_any_secret_was_stored()
+    {
+        new DpapiSecretStore(_directory).Delete(Guid.NewGuid());
+    }
+
+    [Fact]
     public async Task Missing_or_deleted_secret_returns_null()
     {
         var store = new DpapiSecretStore(_directory);
