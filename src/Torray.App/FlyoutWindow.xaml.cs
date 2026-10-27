@@ -6,21 +6,37 @@ using Forms = System.Windows.Forms;
 
 namespace Torray.App;
 
-public partial class FlyoutWindow : Window
+public partial class FlyoutWindow : Window, IFlyoutDialogs
 {
     private const double DefaultHeight = 600;
     private const double EdgeMargin = 12;
     private const long ReopenGuardMilliseconds = 300;
 
+    private readonly FlyoutViewModel _viewModel;
     private readonly bool _hideOnDeactivate;
     private bool _allowClose;
+    private bool _dialogOpen;
     private long _hiddenAt;
 
     public FlyoutWindow(FlyoutViewModel viewModel, bool hideOnDeactivate)
     {
         InitializeComponent();
+        _viewModel = viewModel;
+        viewModel.Dialogs = this;
         DataContext = viewModel;
         _hideOnDeactivate = hideOnDeactivate;
+    }
+
+    public RemoveChoice ConfirmRemove(string torrentName)
+    {
+        var dialog = new RemoveTorrentWindow(torrentName) { Owner = this };
+        return ShowOwnedDialog(() => dialog.ShowDialog()) == true ? dialog.Choice : RemoveChoice.Cancel;
+    }
+
+    public IReadOnlyList<string> PickTorrentFiles()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Strings.Get("TorrentFileFilter"), Multiselect = true };
+        return ShowOwnedDialog(() => dialog.ShowDialog(this)) == true ? dialog.FileNames : [];
     }
 
     public void Toggle()
@@ -57,7 +73,7 @@ public partial class FlyoutWindow : Window
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
-        if (_hideOnDeactivate)
+        if (_hideOnDeactivate && !_dialogOpen)
         {
             HideFlyout();
         }
@@ -90,6 +106,59 @@ public partial class FlyoutWindow : Window
     {
         Hide();
         _hiddenAt = Environment.TickCount64;
+    }
+
+    // A dialog owned by the flyout deactivates it; without this the flyout would vanish behind its own dialog.
+    private bool? ShowOwnedDialog(Func<bool?> show)
+    {
+        _dialogOpen = true;
+        try
+        {
+            return show();
+        }
+        finally
+        {
+            _dialogOpen = false;
+            Activate();
+        }
+    }
+
+    private static string[] GetTorrentFiles(IDataObject data) =>
+        data.GetData(DataFormats.FileDrop) is string[] files
+            ? [.. files.Where(f => f.EndsWith(".torrent", StringComparison.OrdinalIgnoreCase))]
+            : [];
+
+    private static string? GetDroppedText(IDataObject data) =>
+        data.GetDataPresent(DataFormats.UnicodeText) ? data.GetData(DataFormats.UnicodeText) as string : null;
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        var supported = GetTorrentFiles(e.Data).Length > 0
+            || GetDroppedText(e.Data)?.TrimStart().StartsWith("magnet:", StringComparison.OrdinalIgnoreCase) == true;
+        e.Effects = supported && _viewModel.IsConfigured ? DragDropEffects.Copy : DragDropEffects.None;
+        DropOverlay.Visibility = e.Effects == DragDropEffects.Copy ? Visibility.Visible : Visibility.Collapsed;
+        e.Handled = true;
+    }
+
+    private void OnDragLeave(object sender, DragEventArgs e) => DropOverlay.Visibility = Visibility.Collapsed;
+
+    private async void OnDrop(object sender, DragEventArgs e)
+    {
+        DropOverlay.Visibility = Visibility.Collapsed;
+        if (!_viewModel.IsConfigured)
+        {
+            return;
+        }
+
+        var files = GetTorrentFiles(e.Data);
+        if (files.Length > 0)
+        {
+            await _viewModel.AddFilesAsync(files);
+        }
+        else if (GetDroppedText(e.Data) is { } text)
+        {
+            await _viewModel.AddMagnetFromTextAsync(text);
+        }
     }
 
     // The taskbar edge is wherever the working area is inset from the screen bounds; the tray sits at the

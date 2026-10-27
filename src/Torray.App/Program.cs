@@ -49,8 +49,8 @@ internal static class Program
                 new JsonSettingsStore(Path.Combine(dataDirectory, "settings.json")));
             builder.Services.AddSingleton<ISecretStore>(new DpapiSecretStore(Path.Combine(dataDirectory, "secrets")));
             builder.Services.AddSingleton<ITransmissionRpcClientFactory, TransmissionRpcClientFactory>();
-            builder.Services.AddSingleton<TorrentRefreshService>();
-            builder.Services.AddHostedService(services => services.GetRequiredService<TorrentRefreshService>());
+            builder.Services.AddSingleton<TorrentService>();
+            builder.Services.AddHostedService(services => services.GetRequiredService<TorrentService>());
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();

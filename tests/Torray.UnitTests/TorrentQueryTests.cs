@@ -15,21 +15,24 @@ public sealed class TorrentQueryTests
             TorrentStatus.QueuedToSeed, TorrentStatus.Stopped, TorrentStatus.Seeding, TorrentStatus.Seeding,
         ];
 
-        var counts = TorrentCounts.From(statuses.Select((s, i) => new Torrent(i, "t", s, 0, 0, 0, 0, 0, null, i, null)));
+        var counts = TorrentCounts.From(statuses.Select((s, i) =>
+            new Torrent(i, "t", s, 0, 0, 0, 0, 0, null, i, i == 0 ? "tracker error" : null)));
 
-        Assert.Equal(new TorrentCounts(Active: 2, Queued: 2, Paused: 1, Seeding: 2), counts);
+        Assert.Equal(new TorrentCounts(Active: 2, Queued: 2, Paused: 1, Seeding: 2, Errors: 1), counts);
     }
 
     [Theory]
-    [InlineData(TorrentFilter.All, TorrentStatus.Verifying, true)]
-    [InlineData(TorrentFilter.Downloading, TorrentStatus.QueuedToDownload, true)]
-    [InlineData(TorrentFilter.Downloading, TorrentStatus.Seeding, false)]
-    [InlineData(TorrentFilter.Seeding, TorrentStatus.QueuedToSeed, true)]
-    [InlineData(TorrentFilter.Paused, TorrentStatus.Stopped, true)]
-    [InlineData(TorrentFilter.Paused, TorrentStatus.Downloading, false)]
-    public void Filter_matches_statuses(TorrentFilter filter, TorrentStatus status, bool expected)
+    [InlineData(TorrentFilter.All, TorrentStatus.Verifying, false, true)]
+    [InlineData(TorrentFilter.Downloading, TorrentStatus.QueuedToDownload, false, true)]
+    [InlineData(TorrentFilter.Downloading, TorrentStatus.Seeding, false, false)]
+    [InlineData(TorrentFilter.Seeding, TorrentStatus.QueuedToSeed, false, true)]
+    [InlineData(TorrentFilter.Paused, TorrentStatus.Stopped, false, true)]
+    [InlineData(TorrentFilter.Paused, TorrentStatus.Downloading, false, false)]
+    [InlineData(TorrentFilter.Errors, TorrentStatus.Stopped, true, true)]
+    [InlineData(TorrentFilter.Errors, TorrentStatus.Seeding, false, false)]
+    public void Filter_matches_statuses(TorrentFilter filter, TorrentStatus status, bool hasError, bool expected)
     {
-        Assert.Equal(expected, filter.Matches(status));
+        Assert.Equal(expected, filter.Matches(status, hasError));
     }
 
     [Theory]

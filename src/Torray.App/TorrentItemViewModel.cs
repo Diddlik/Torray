@@ -18,9 +18,6 @@ public sealed partial class TorrentItemViewModel : ObservableObject
     public partial string Name { get; set; }
 
     [ObservableProperty]
-    public partial TorrentStatus Status { get; set; }
-
-    [ObservableProperty]
     public partial int QueuePosition { get; set; }
 
     [ObservableProperty]
@@ -34,6 +31,15 @@ public sealed partial class TorrentItemViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool HasError { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStopped))]
+    public partial TorrentStatus Status { get; set; }
+
+    public bool IsStopped => Status == TorrentStatus.Stopped;
+
+    [ObservableProperty]
+    public partial bool IsBusy { get; set; }
 
     // Observable setters only notify on change, so updating every refresh does not churn the UI.
     public void Update(Torrent torrent)

@@ -2,126 +2,234 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Torray.App"
-        x:Name="Root"
         Title="{StaticResource AppName}"
         Icon="Assets/Torray.ico"
         Width="420" Height="600"
         WindowStyle="None" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True"
-        WindowStartupLocation="Manual">
+        WindowStartupLocation="Manual"
+        AllowDrop="True" DragEnter="OnDragOver" DragOver="OnDragOver" DragLeave="OnDragLeave" Drop="OnDrop">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
+
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="IsEnabled" Value="False" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid>
+        <Grid Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!-- Header: server, connection state, aggregate rates -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel>
-                <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" Opacity="0.7" />
+            <!-- Header: server, connection state, aggregate rates -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" Opacity="0.7" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                            Visibility="{Binding IsConnected, Converter={StaticResource Visible}}">
+                    <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" Opacity="0.7" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Add: magnet paste field and file picker -->
+            <Grid Grid.Row="1" Margin="0,12,0,0" Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="MagnetBox" Text="{Binding MagnetText, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{StaticResource FlyoutMagnetPlaceholder}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding AddMagnetCommand}" />
+                    </TextBox.InputBindings>
+                </TextBox>
+                <TextBlock Text="{StaticResource FlyoutMagnetPlaceholder}" IsHitTestVisible="False" Opacity="0.5"
+                           VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=MagnetBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Button Grid.Column="1" Content="{StaticResource FlyoutAddMagnet}" Margin="8,0,0,0"
+                        Style="{DynamicResource AccentButtonStyle}" Command="{Binding AddMagnetCommand}" />
+                <Button Grid.Column="2" Content="{StaticResource FlyoutOpenTorrent}" Margin="8,0,0,0"
+                        Command="{Binding OpenTorrentFilesCommand}" />
+            </Grid>
+
+            <!-- Outcome of the last action -->
+            <TextBlock Grid.Row="2" Text="{Binding NoticeText}" Margin="0,8,0,0" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Polite">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Opacity" Value="0.8" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding NoticeText}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding NoticeIsError}" Value="True">
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- Offline banner keeps the last known list visible below it -->
+            <Border Grid.Row="3" Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
+                    BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
+                    Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                            Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
+                    <StackPanel>
+                        <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Filters and counts -->
+            <StackPanel Grid.Row="4" Margin="0,12,0,0"
+                        Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+                <ListBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" DisplayMemberPath="Label"
+                         AutomationProperties.Name="{StaticResource FlyoutFilters}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+                <TextBlock Text="{Binding CountsText}" Margin="0,8,0,0" Opacity="0.7" TextTrimming="CharacterEllipsis" />
             </StackPanel>
-            <StackPanel Grid.Column="1" VerticalAlignment="Center"
-                        Visibility="{Binding IsConnected, Converter={StaticResource Visible}}">
-                <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" />
-                <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" Opacity="0.7" />
+
+            <!-- Torrent list -->
+            <ListBox Grid.Row="5" Margin="0,8,0,0" ItemsSource="{Binding Torrents}"
+                     AutomationProperties.Name="{StaticResource FlyoutTorrentList}"
+                     HorizontalContentAlignment="Stretch"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     VirtualizingPanel.ScrollUnit="Pixel">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="local:TorrentItemViewModel">
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,6" />
+                                <TextBlock Text="{Binding DetailText}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding DetailText}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Opacity" Value="0.7" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                                    <Setter Property="Opacity" Value="1" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding RatesText}" FontSize="12" Opacity="0.7" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <Button CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.ToggleStartCommand, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                            <Setter Property="Content" Value="&#xE769;" />
+                                            <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentPause}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsStopped}" Value="True">
+                                                    <Setter Property="Content" Value="&#xE768;" />
+                                                    <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentStart}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Style="{StaticResource IconButton}" Content="&#xE74D;"
+                                        AutomationProperties.Name="{StaticResource TorrentRemove}"
+                                        CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Grid.Row="5" Text="{StaticResource FlyoutEmpty}" Opacity="0.7"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}" />
+
+            <StackPanel Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{Binding IsNotConfigured, Converter={StaticResource Visible}}">
+                <TextBlock Text="{StaticResource FlyoutNotConfigured}" HorizontalAlignment="Center" Opacity="0.7" />
+                <Button Content="{StaticResource FlyoutSetUp}" Margin="0,12,0,0" HorizontalAlignment="Center"
+                        Style="{DynamicResource AccentButtonStyle}" Click="OnConnectionClick" />
             </StackPanel>
+
+            <!-- Footer -->
+            <DockPanel Grid.Row="6" Margin="0,12,0,0">
+                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" />
+                <TextBlock Text="{StaticResource FlyoutDropHint}" VerticalAlignment="Center" Opacity="0.7"
+                           FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+            </DockPanel>
         </Grid>
 
-        <!-- Offline banner keeps the last known list visible below it -->
-        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
-                BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
-                Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
-            <DockPanel>
-                <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
-                        Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
-                <StackPanel>
-                    <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
-                </StackPanel>
-            </DockPanel>
+        <!-- Visible drop state while a supported item is dragged over the flyout -->
+        <Border x:Name="DropOverlay" Visibility="Collapsed" Margin="8" CornerRadius="8" BorderThickness="2"
+                BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" IsHitTestVisible="False">
+            <TextBlock Text="{StaticResource FlyoutDropActive}" FontSize="20" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
-
-        <!-- Filters and counts -->
-        <StackPanel Grid.Row="2" Margin="0,12,0,0"
-                    Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
-            <ListBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" DisplayMemberPath="Label"
-                     AutomationProperties.Name="{StaticResource FlyoutFilters}"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-            </ListBox>
-            <TextBlock Text="{Binding CountsText}" Margin="0,8,0,0" Opacity="0.7" />
-        </StackPanel>
-
-        <!-- Torrent list -->
-        <ListBox Grid.Row="3" Margin="0,8,0,0" ItemsSource="{Binding Torrents}"
-                 AutomationProperties.Name="{StaticResource FlyoutTorrentList}"
-                 HorizontalContentAlignment="Stretch"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 VirtualizingPanel.IsVirtualizing="True"
-                 VirtualizingPanel.VirtualizationMode="Recycling"
-                 VirtualizingPanel.ScrollUnit="Pixel">
-            <ListBox.ItemContainerStyle>
-                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
-                </Style>
-            </ListBox.ItemContainerStyle>
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="local:TorrentItemViewModel">
-                    <StackPanel Margin="0,4">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
-                        <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,6" />
-                        <TextBlock Text="{Binding DetailText}" FontSize="12" TextTrimming="CharacterEllipsis"
-                                   ToolTip="{Binding DetailText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Opacity" Value="0.7" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasError}" Value="True">
-                                            <Setter Property="Opacity" Value="1" />
-                                            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <TextBlock Text="{Binding RatesText}" FontSize="12" Opacity="0.7" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-
-        <TextBlock Grid.Row="3" Text="{StaticResource FlyoutEmpty}" Opacity="0.7"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}" />
-
-        <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Visibility="{Binding IsNotConfigured, Converter={StaticResource Visible}}">
-            <TextBlock Text="{StaticResource FlyoutNotConfigured}" HorizontalAlignment="Center" Opacity="0.7" />
-            <Button Content="{StaticResource FlyoutSetUp}" Margin="0,12,0,0" HorizontalAlignment="Center"
-                    Style="{DynamicResource AccentButtonStyle}" Click="OnConnectionClick" />
-        </StackPanel>
-
-        <!-- Footer -->
-        <DockPanel Grid.Row="4" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
-            <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" />
-            <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
-        </DockPanel>
     </Grid>
 </Window>

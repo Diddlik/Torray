@@ -5,7 +5,20 @@ public interface ITransmissionRpcClient
     Task<ServerInfo> GetSessionAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Torrent>> GetTorrentsAsync(CancellationToken cancellationToken = default);
+
+    // Transmission always discards its copy of the .torrent file; deleteLocalData also deletes the downloaded payload.
+    Task RemoveAsync(int id, bool deleteLocalData, CancellationToken cancellationToken = default);
+
+    Task StartAsync(int id, CancellationToken cancellationToken = default);
+
+    Task StopAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default);
+
+    Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default);
 }
+
+public sealed record AddedTorrent(int Id, string Name, bool IsDuplicate);
 
 public interface ITransmissionRpcClientFactory
 {

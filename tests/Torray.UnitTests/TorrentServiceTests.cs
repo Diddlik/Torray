@@ -4,7 +4,7 @@ using Torray.Domain;
 
 namespace Torray.UnitTests;
 
-public sealed class TorrentRefreshServiceTests
+public sealed class TorrentServiceTests
 {
     private static readonly Torrent Sample =
         new(1, "a", TorrentStatus.Downloading, 0.5, 10, 0, 100, 50, null, 0, null);
@@ -20,13 +20,13 @@ public sealed class TorrentRefreshServiceTests
     [InlineData(true, 50, 60)]
     public void Delay_adapts_to_visibility_and_backs_off_up_to_a_limit(bool visible, int failures, int expectedSeconds)
     {
-        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), TorrentRefreshService.GetDelay(visible, failures));
+        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), TorrentService.GetDelay(visible, failures));
     }
 
     [Fact]
     public async Task Successful_refresh_publishes_connected_snapshot()
     {
-        var service = new TorrentRefreshService(NullLogger<TorrentRefreshService>.Instance);
+        var service = new TorrentService(NullLogger<TorrentService>.Instance);
         var snapshots = new List<TorrentSnapshot>();
         service.Updated += snapshots.Add;
 
@@ -42,7 +42,7 @@ public sealed class TorrentRefreshServiceTests
     [Fact]
     public async Task Failure_keeps_last_known_torrents_and_reports_error()
     {
-        var service = new TorrentRefreshService(NullLogger<TorrentRefreshService>.Instance);
+        var service = new TorrentService(NullLogger<TorrentService>.Instance);
         var fail = false;
         service.SetClient(new FakeClient(() => fail
             ? throw new TransmissionRpcException(RpcErrorKind.Unreachable, "down")
@@ -63,7 +63,7 @@ public sealed class TorrentRefreshServiceTests
     [Fact]
     public async Task Result_from_replaced_connection_is_discarded()
     {
-        var service = new TorrentRefreshService(NullLogger<TorrentRefreshService>.Instance);
+        var service = new TorrentService(NullLogger<TorrentService>.Instance);
         var release = new TaskCompletionSource();
         service.SetClient(new FakeClient(() => [Sample], release.Task));
         var pending = service.RefreshAsync(Token);
@@ -78,10 +78,46 @@ public sealed class TorrentRefreshServiceTests
         Assert.Empty(last.Torrents);
     }
 
+    [Fact]
+    public async Task Commands_use_current_connection_and_fail_without_one()
+    {
+        var service = new TorrentService(NullLogger<TorrentService>.Instance);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.StopAsync(1, Token));
+
+        var client = new FakeClient(() => []);
+        service.SetClient(client);
+        await service.RemoveAsync(5, deleteLocalData: false, Token);
+        var added = await service.AddMagnetAsync("magnet:?xt=urn:btih:abc", Token);
+
+        Assert.Equal(["remove 5 False", "magnet"], client.Calls);
+        Assert.True(added.IsDuplicate);
+    }
+
     private sealed class FakeClient(Func<IReadOnlyList<Torrent>> torrents, Task? gate = null) : ITransmissionRpcClient
     {
+        public List<string> Calls { get; } = [];
+
         public Task<ServerInfo> GetSessionAsync(CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
+
+        public Task RemoveAsync(int id, bool deleteLocalData, CancellationToken cancellationToken = default)
+        {
+            Calls.Add($"remove {id} {deleteLocalData}");
+            return Task.CompletedTask;
+        }
+
+        public Task StartAsync(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task StopAsync(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default)
+        {
+            Calls.Add("magnet");
+            return Task.FromResult(new AddedTorrent(1, "a", IsDuplicate: true));
+        }
 
         public async Task<IReadOnlyList<Torrent>> GetTorrentsAsync(CancellationToken cancellationToken = default)
         {

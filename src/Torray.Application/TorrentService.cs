@@ -24,8 +24,9 @@ public sealed record TorrentSnapshot(
 }
 
 // Polls the torrent list in a single loop, so refreshes never overlap: fast while the flyout is visible,
-// slow while hidden, and with exponential backoff while the server is unreachable.
-public sealed class TorrentRefreshService(ILogger<TorrentRefreshService> logger) : BackgroundService
+// slow while hidden, and with exponential backoff while the server is unreachable. Commands run against the
+// current connection and trigger an immediate refresh.
+public sealed class TorrentService(ILogger<TorrentService> logger) : BackgroundService
 {
     public static readonly TimeSpan VisibleInterval = TimeSpan.FromSeconds(2);
     public static readonly TimeSpan HiddenInterval = TimeSpan.FromSeconds(20);
@@ -59,6 +60,42 @@ public sealed class TorrentRefreshService(ILogger<TorrentRefreshService> logger)
     }
 
     public void RefreshNow() => Wake();
+
+    public Task RemoveAsync(int id, bool deleteLocalData, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Removing torrent {Id} (delete local data: {DeleteLocalData})", id, deleteLocalData);
+        return RunAsync(client => client.RemoveAsync(id, deleteLocalData, cancellationToken));
+    }
+
+    public Task StartAsync(int id, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.StartAsync(id, cancellationToken));
+
+    public Task StopAsync(int id, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.StopAsync(id, cancellationToken));
+
+    public Task<AddedTorrent> AddFileAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.AddMetainfoAsync(metainfo, cancellationToken));
+
+    // The magnet URI is never logged: private trackers embed passkeys in it.
+    public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.AddMagnetAsync(magnetUri, cancellationToken));
+
+    private Task RunAsync(Func<ITransmissionRpcClient, Task> command) =>
+        RunAsync(async client =>
+        {
+            await command(client);
+            return true;
+        });
+
+    private async Task<T> RunAsync<T>(Func<ITransmissionRpcClient, Task<T>> command)
+    {
+        var client = _client ?? throw new InvalidOperationException("No connection is configured.");
+        var result = await command(client);
+
+        // The list changes only through the next refresh, so the UI always shows confirmed server state.
+        Wake();
+        return result;
+    }
 
     public static TimeSpan GetDelay(bool visible, int failures)
     {

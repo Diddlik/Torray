@@ -233,6 +233,78 @@ public sealed class TransmissionRpcClientTests
         Assert.Equal(RpcErrorKind.InvalidResponse, ex.Kind);
     }
 
+    [Fact]
+    public async Task RemoveAsync_sends_delete_flag_in_dialect_specific_form()
+    {
+        var legacy = new FakeHandler(_ => Json("""{"result":"success","arguments":{}}"""));
+        var jsonRpc = new FakeHandler(
+            _ => Conflict("abc", rpcVersion: "6.0.0"),
+            _ => Json("""{"jsonrpc":"2.0","result":{},"id":1}"""));
+
+        await CreateClient(legacy).RemoveAsync(3, deleteLocalData: false, Token);
+        await CreateClient(jsonRpc).RemoveAsync(3, deleteLocalData: true, Token);
+
+        var legacyArgs = legacy.Requests[0].Body.GetProperty("arguments");
+        Assert.Equal("torrent-remove", legacy.Requests[0].Body.GetProperty("method").GetString());
+        Assert.False(legacyArgs.GetProperty("delete-local-data").GetBoolean());
+        Assert.Equal(3, legacyArgs.GetProperty("ids")[0].GetInt32());
+        var jsonRpcBody = jsonRpc.Requests[1].Body;
+        Assert.Equal("torrent_remove", jsonRpcBody.GetProperty("method").GetString());
+        Assert.True(jsonRpcBody.GetProperty("params").GetProperty("delete_local_data").GetBoolean());
+    }
+
+    [Fact]
+    public async Task StartAsync_and_StopAsync_send_ids()
+    {
+        var handler = new FakeHandler(_ => Json("""{"result":"success","arguments":{}}"""));
+        var client = CreateClient(handler);
+
+        await client.StartAsync(4, Token);
+        await client.StopAsync(4, Token);
+
+        Assert.Equal("torrent-start", handler.Requests[0].Body.GetProperty("method").GetString());
+        Assert.Equal("torrent-stop", handler.Requests[1].Body.GetProperty("method").GetString());
+        Assert.Equal(4, handler.Requests[1].Body.GetProperty("arguments").GetProperty("ids")[0].GetInt32());
+    }
+
+    [Fact]
+    public async Task AddMetainfoAsync_sends_base64_and_reports_new_torrent()
+    {
+        var handler = new FakeHandler(_ => Json("""
+            {"result":"success","arguments":{"torrent-added":{"id":9,"name":"new.iso","hashString":"ab"}}}
+            """));
+
+        var added = await CreateClient(handler).AddMetainfoAsync([1, 2, 3], Token);
+
+        Assert.Equal(new AddedTorrent(9, "new.iso", IsDuplicate: false), added);
+        Assert.Equal("AQID", handler.Requests[0].Body.GetProperty("arguments").GetProperty("metainfo").GetString());
+    }
+
+    [Fact]
+    public async Task AddMagnetAsync_reports_duplicate_in_json_rpc()
+    {
+        var handler = new FakeHandler(
+            _ => Conflict("abc", rpcVersion: "6.0.1"),
+            _ => Json("""{"jsonrpc":"2.0","result":{"torrent_duplicate":{"id":2,"name":"old","hash_string":"ab"}},"id":1}"""));
+
+        var added = await CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", Token);
+
+        Assert.Equal(new AddedTorrent(2, "old", IsDuplicate: true), added);
+        Assert.Equal("magnet:?xt=urn:btih:ab",
+            handler.Requests[1].Body.GetProperty("params").GetProperty("filename").GetString());
+    }
+
+    [Fact]
+    public async Task AddMagnetAsync_without_torrent_in_result_is_invalid()
+    {
+        var handler = new FakeHandler(_ => Json("""{"result":"success","arguments":{}}"""));
+
+        var ex = await Assert.ThrowsAsync<TransmissionRpcException>(
+            () => CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", Token));
+
+        Assert.Equal(RpcErrorKind.InvalidResponse, ex.Kind);
+    }
+
     private static TransmissionRpcClient CreateClient(FakeHandler handler) => new(new HttpClient(handler), Endpoint, null);
 
     private static HttpResponseMessage Conflict(string sessionId, string? rpcVersion = null)

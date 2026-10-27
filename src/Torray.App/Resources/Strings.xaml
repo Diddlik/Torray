@@ -16,7 +16,36 @@
     <sys:String x:Key="FlyoutLastRefresh">Last refresh: {0:T}</sys:String>
     <sys:String x:Key="FlyoutNeverRefreshed">No successful refresh yet</sys:String>
     <sys:String x:Key="FlyoutRetry">Retry</sys:String>
-    <sys:String x:Key="FlyoutCounts">{0} active · {1} queued · {2} paused · {3} seeding</sys:String>
+    <sys:String x:Key="FlyoutCounts">{0} active · {1} queued · {2} paused · {3} seeding · {4} errors</sys:String>
+    <sys:String x:Key="FlyoutMagnetPlaceholder">Paste a magnet link</sys:String>
+    <sys:String x:Key="FlyoutAddMagnet">Add</sys:String>
+    <sys:String x:Key="FlyoutOpenTorrent">Open .torrent…</sys:String>
+    <sys:String x:Key="FlyoutDropHint">Drop .torrent files or magnet links here</sys:String>
+    <sys:String x:Key="FlyoutDropActive">Release to add</sys:String>
+    <sys:String x:Key="TorrentFileFilter">Torrent files (*.torrent)|*.torrent</sys:String>
+
+    <sys:String x:Key="TorrentStart">Resume</sys:String>
+    <sys:String x:Key="TorrentPause">Pause</sys:String>
+    <sys:String x:Key="TorrentRemove">Remove…</sys:String>
+
+    <sys:String x:Key="NoticeAdded">Added "{0}".</sys:String>
+    <sys:String x:Key="NoticeDuplicate">"{0}" is already in the list.</sys:String>
+    <sys:String x:Key="NoticeRemoved">Removed "{0}" from the list. Downloaded files were kept.</sys:String>
+    <sys:String x:Key="NoticeRemovedWithData">Removed "{0}" and deleted its downloaded files.</sys:String>
+
+    <sys:String x:Key="TorrentInputNotMagnet">That is not a magnet link. Magnet links start with "magnet:?xt=urn:btih:".</sys:String>
+    <sys:String x:Key="TorrentInputFileNotFound">The .torrent file no longer exists.</sys:String>
+    <sys:String x:Key="TorrentInputFileTooLarge">The file is too large to be a .torrent file (limit 10 MB).</sys:String>
+    <sys:String x:Key="TorrentInputNotTorrentFile">The file is not a valid .torrent file.</sys:String>
+    <sys:String x:Key="TorrentInputFileUnreadable">The .torrent file could not be read. Check that it is not open in another program.</sys:String>
+
+    <sys:String x:Key="RemoveTitle">Remove torrent</sys:String>
+    <sys:String x:Key="RemoveQuestion">Remove "{0}"?</sys:String>
+    <sys:String x:Key="RemoveKeepDataHint">Remove from list: Transmission forgets the torrent and its .torrent file. Downloaded files stay on the server.</sys:String>
+    <sys:String x:Key="RemoveDeleteDataHint">Delete with data: also deletes the downloaded files on the server. This cannot be undone.</sys:String>
+    <sys:String x:Key="RemoveKeepData">Remove from list</sys:String>
+    <sys:String x:Key="RemoveDeleteData">Delete with data</sys:String>
+    <sys:String x:Key="RemoveCancel">Cancel</sys:String>
     <sys:String x:Key="FlyoutDownloadRate">Download {0}</sys:String>
     <sys:String x:Key="FlyoutUploadRate">Upload {0}</sys:String>
     <sys:String x:Key="FlyoutEmpty">No torrents</sys:String>
@@ -27,6 +56,7 @@
     <sys:String x:Key="FilterDownloading">Downloading</sys:String>
     <sys:String x:Key="FilterSeeding">Seeding</sys:String>
     <sys:String x:Key="FilterPaused">Paused</sys:String>
+    <sys:String x:Key="FilterErrors">Errors</sys:String>
 
     <sys:String x:Key="StatusUnknown">Unknown</sys:String>
     <sys:String x:Key="StatusStopped">Paused</sys:String>

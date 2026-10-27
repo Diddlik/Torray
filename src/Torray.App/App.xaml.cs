@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows;
@@ -14,7 +14,7 @@ public partial class App(
     ISettingsStore settingsStore,
     ISecretStore secretStore,
     ITransmissionRpcClientFactory rpcClientFactory,
-    TorrentRefreshService refresh,
+    TorrentService refresh,
     ILogger<App> logger) : System.Windows.Application
 {
     private AppSettings _settings = new();

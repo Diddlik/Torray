@@ -54,6 +54,52 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
         }
     }
 
+    public async Task RemoveAsync(int id, bool deleteLocalData, CancellationToken cancellationToken = default) =>
+        await SendAsync(
+            "torrent-remove",
+            "torrent_remove",
+            cancellationToken,
+            d => new JsonObject
+            {
+                ["ids"] = new JsonArray(id),
+                [d == RpcDialect.JsonRpc ? "delete_local_data" : "delete-local-data"] = deleteLocalData,
+            });
+
+    public async Task StartAsync(int id, CancellationToken cancellationToken = default) =>
+        await SendAsync("torrent-start", "torrent_start", cancellationToken, _ => new JsonObject { ["ids"] = new JsonArray(id) });
+
+    public async Task StopAsync(int id, CancellationToken cancellationToken = default) =>
+        await SendAsync("torrent-stop", "torrent_stop", cancellationToken, _ => new JsonObject { ["ids"] = new JsonArray(id) });
+
+    public Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
+        AddAsync(new JsonObject { ["metainfo"] = Convert.ToBase64String(metainfo) }, cancellationToken);
+
+    public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default) =>
+        AddAsync(new JsonObject { ["filename"] = magnetUri }, cancellationToken);
+
+    private async Task<AddedTorrent> AddAsync(JsonObject arguments, CancellationToken cancellationToken)
+    {
+        var (result, dialect) = await SendAsync(
+            "torrent-add", "torrent_add", cancellationToken, _ => (JsonObject)arguments.DeepClone());
+
+        // A duplicate is still reported as success; only the result key tells it apart from a new torrent.
+        var json = dialect == RpcDialect.JsonRpc;
+        var isDuplicate = result.TryGetProperty(json ? "torrent_duplicate" : "torrent-duplicate", out var torrent);
+        if (!isDuplicate && !result.TryGetProperty(json ? "torrent_added" : "torrent-added", out torrent))
+        {
+            throw new TransmissionRpcException(RpcErrorKind.InvalidResponse, "torrent-add returned no torrent.");
+        }
+
+        try
+        {
+            return new AddedTorrent(torrent.GetProperty("id").GetInt32(), GetString(torrent, "name") ?? string.Empty, isDuplicate);
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            throw new TransmissionRpcException(RpcErrorKind.InvalidResponse, "Unexpected torrent-add response.", ex);
+        }
+    }
+
     // Legacy (camelCase) names; JSON-RPC uses the snake_case form of the same fields.
     private static readonly string[] TorrentFields =
     [

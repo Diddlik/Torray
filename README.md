@@ -3,9 +3,12 @@
 A Windows tray flyout for managing a remote [Transmission](https://transmissionbt.com/) daemon over RPC.
 See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
-Status: milestone 3 (read-only dashboard). The flyout shows the torrent list with status, progress, rates, and ETA, plus filters and aggregate speeds.
+Status: milestone 4 (actions). The flyout shows the torrent list with status, progress, rates, ETA, filters (including errors), and aggregate speeds.
 It refreshes every 2 s while open and every 20 s while hidden, and backs off up to 60 s while the server is unreachable.
-Torrent actions (add, pause, remove) are not implemented yet.
+
+- Add torrents: paste a magnet link, use **Open .torrent…**, or drop `.torrent` files or magnet links onto the flyout.
+- Pause or resume each torrent from its row.
+- Remove asks first: **Remove from list** keeps the downloaded files and is the default; **Delete with data** also deletes the files on the server.
 
 ## Transmission compatibility
 

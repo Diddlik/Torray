@@ -32,15 +32,21 @@ public enum TorrentFilter
     Downloading,
     Seeding,
     Paused,
+    Errors,
 }
 
-public sealed record TorrentCounts(int Active, int Queued, int Paused, int Seeding)
+public sealed record TorrentCounts(int Active, int Queued, int Paused, int Seeding, int Errors)
 {
     public static TorrentCounts From(IEnumerable<Torrent> torrents)
     {
-        int active = 0, queued = 0, paused = 0, seeding = 0;
+        int active = 0, queued = 0, paused = 0, seeding = 0, errors = 0;
         foreach (var torrent in torrents)
         {
+            if (torrent.ErrorMessage is not null)
+            {
+                errors++;
+            }
+
             switch (torrent.Status)
             {
                 case TorrentStatus.Downloading or TorrentStatus.Verifying:
@@ -58,17 +64,18 @@ public sealed record TorrentCounts(int Active, int Queued, int Paused, int Seedi
             }
         }
 
-        return new TorrentCounts(active, queued, paused, seeding);
+        return new TorrentCounts(active, queued, paused, seeding, errors);
     }
 }
 
 public static class TorrentFilterExtensions
 {
-    public static bool Matches(this TorrentFilter filter, TorrentStatus status) => filter switch
+    public static bool Matches(this TorrentFilter filter, TorrentStatus status, bool hasError) => filter switch
     {
         TorrentFilter.Downloading => status is TorrentStatus.Downloading or TorrentStatus.QueuedToDownload,
         TorrentFilter.Seeding => status is TorrentStatus.Seeding or TorrentStatus.QueuedToSeed,
         TorrentFilter.Paused => status is TorrentStatus.Stopped,
+        TorrentFilter.Errors => hasError,
         _ => true,
     };
 }
