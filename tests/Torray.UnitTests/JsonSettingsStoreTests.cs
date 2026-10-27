@@ -42,9 +42,27 @@ public sealed class JsonSettingsStoreTests : IDisposable
         var loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
 
         // Records compare lists by reference, so compare the list contents separately.
-        Assert.Equal(saved with { WatchFolders = [] }, loaded with { WatchFolders = [] });
+        Assert.Equal(saved with { WatchFolders = [], Connections = [] }, loaded with { WatchFolders = [], Connections = [] });
         Assert.Equal(saved.WatchFolders, loaded.WatchFolders);
         Assert.False(File.Exists(SettingsPath + ".tmp"));
+    }
+
+    [Fact]
+    public async Task LoadAsync_moves_single_server_settings_into_profiles()
+    {
+        var id = Guid.NewGuid();
+        Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
+        await File.WriteAllTextAsync(
+            SettingsPath,
+            $$$"""{"Connection":{"Id":"{{{id}}}","Host":"nas","Port":9092}}""",
+            TestContext.Current.CancellationToken);
+
+        var settings = await new JsonSettingsStore(SettingsPath).LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(settings.Connection);
+        var profile = Assert.Single(settings.Connections);
+        Assert.Equal((id, "nas", 9092), (profile.Id, profile.Host, profile.Port));
+        Assert.Equal(profile, settings.GetActiveConnection());
     }
 
     [Fact]

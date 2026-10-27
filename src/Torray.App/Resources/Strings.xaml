@@ -139,4 +139,47 @@
     <sys:String x:Key="AboutLicense">Licensed under the MIT License.</sys:String>
     <sys:String x:Key="AboutCredits">Third-party libraries</sys:String>
     <sys:String x:Key="AboutClose">Close</sys:String>
+    <sys:String x:Key="TrayServers">Servers</sys:String>
+    <sys:String x:Key="TrayAddServer">Add server…</sys:String>
+    <sys:String x:Key="FlyoutSwitchServer">Switch server</sys:String>
+    <sys:String x:Key="FlyoutPin">Keep panel open</sys:String>
+    <sys:String x:Key="FlyoutUnpin">Unpin panel (Esc)</sys:String>
+    <sys:String x:Key="FlyoutAddOptions">Add options</sys:String>
+    <sys:String x:Key="FlyoutDownloadDir">_Download folder on the server</sys:String>
+    <sys:String x:Key="FlyoutDownloadDirHint">An absolute path on the server, such as /downloads/movies. Leave empty to use the server's default folder.</sys:String>
+    <sys:String x:Key="FlyoutStartPaused">Add _paused</sys:String>
+    <sys:String x:Key="TorrentInputInvalidDownloadDir">The download folder must be an absolute path on the server, such as /downloads.</sys:String>
+    <sys:String x:Key="TorrentDetails">Details</sys:String>
+
+    <sys:String x:Key="NotifyCompleted">"{0}" finished downloading.</sys:String>
+    <sys:String x:Key="NotifyCompletedMany">{0} torrents finished downloading.</sys:String>
+    <sys:String x:Key="NotifyFailed">"{0}" reported an error.</sys:String>
+    <sys:String x:Key="NotifyFailedMany">{0} torrents reported an error.</sys:String>
+    <sys:String x:Key="HotkeyUnavailable">The shortcut {0} is already used by another app. Choose another one in Settings.</sys:String>
+
+    <sys:String x:Key="SettingsShowNotifications">Notify me when a download finishes or fails</sys:String>
+    <sys:String x:Key="SettingsHotkey">Keyboard shortcut</sys:String>
+    <sys:String x:Key="SettingsHotkeyEnabled">Show or hide the panel with a keyboard shortcut</sys:String>
+    <sys:String x:Key="SettingsHotkeyHint">Click the box and press the new shortcut. It needs Ctrl, Alt, or the Windows key.</sys:String>
+
+    <sys:String x:Key="ConnectionName">_Name (optional)</sys:String>
+    <sys:String x:Key="ConnectionRemove">_Remove server</sys:String>
+    <sys:String x:Key="ConnectionRemoveQuestion">Remove "{0}" from Torray? Torrents and files on the server are not affected.</sys:String>
+
+    <sys:String x:Key="DetailsTitle">Torrent details</sys:String>
+    <sys:String x:Key="DetailsLoading">Loading…</sys:String>
+    <sys:String x:Key="DetailsLocation">Location</sys:String>
+    <sys:String x:Key="DetailsSize">Size</sys:String>
+    <sys:String x:Key="DetailsDownloaded">Downloaded</sys:String>
+    <sys:String x:Key="DetailsUploaded">Uploaded</sys:String>
+    <sys:String x:Key="DetailsRatio">Ratio</sys:String>
+    <sys:String x:Key="DetailsAdded">Added</sys:String>
+    <sys:String x:Key="DetailsCompleted">Completed</sys:String>
+    <sys:String x:Key="DetailsHash">Info hash</sys:String>
+    <sys:String x:Key="DetailsError">Error</sys:String>
+    <sys:String x:Key="DetailsTrackers">Trackers</sys:String>
+    <sys:String x:Key="DetailsTracker">{0} · {1} · {2} seeders · {3} leechers</sys:String>
+    <sys:String x:Key="DetailsPeers">Peers ({0} connected)</sys:String>
+    <sys:String x:Key="DetailsPeer">{0} · {1} · {2:0} % · ↓ {3} ↑ {4}</sys:String>
+    <sys:String x:Key="DetailsMorePeers">… and {0} more</sys:String>
 </ResourceDictionary>

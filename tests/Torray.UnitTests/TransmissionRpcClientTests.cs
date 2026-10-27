@@ -274,7 +274,7 @@ public sealed class TransmissionRpcClientTests
             {"result":"success","arguments":{"torrent-added":{"id":9,"name":"new.iso","hashString":"ab"}}}
             """));
 
-        var added = await CreateClient(handler).AddMetainfoAsync([1, 2, 3], Token);
+        var added = await CreateClient(handler).AddMetainfoAsync([1, 2, 3], AddTorrentOptions.Default, Token);
 
         Assert.Equal(new AddedTorrent(9, "new.iso", IsDuplicate: false), added);
         Assert.Equal("AQID", handler.Requests[0].Body.GetProperty("arguments").GetProperty("metainfo").GetString());
@@ -287,11 +287,82 @@ public sealed class TransmissionRpcClientTests
             _ => Conflict("abc", rpcVersion: "6.0.1"),
             _ => Json("""{"jsonrpc":"2.0","result":{"torrent_duplicate":{"id":2,"name":"old","hash_string":"ab"}},"id":1}"""));
 
-        var added = await CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", Token);
+        var added = await CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", AddTorrentOptions.Default, Token);
 
         Assert.Equal(new AddedTorrent(2, "old", IsDuplicate: true), added);
         Assert.Equal("magnet:?xt=urn:btih:ab",
             handler.Requests[1].Body.GetProperty("params").GetProperty("filename").GetString());
+    }
+
+    [Fact]
+    public async Task Add_options_use_dialect_specific_download_dir()
+    {
+        var added = """{"result":"success","arguments":{"torrent-added":{"id":1,"name":"a"}}}""";
+        var legacy = new FakeHandler(_ => Json(added));
+        var jsonRpc = new FakeHandler(
+            _ => Conflict("abc", rpcVersion: "6.0.1"),
+            _ => Json("""{"jsonrpc":"2.0","result":{"torrent_added":{"id":1,"name":"a"}},"id":1}"""));
+        var options = new AddTorrentOptions("/downloads/iso", Paused: true);
+
+        await CreateClient(legacy).AddMagnetAsync("magnet:?xt=urn:btih:ab", options, Token);
+        await CreateClient(jsonRpc).AddMetainfoAsync([1], options, Token);
+        await CreateClient(legacy).AddMagnetAsync("magnet:?xt=urn:btih:ab", AddTorrentOptions.Default, Token);
+
+        var legacyArgs = legacy.Requests[0].Body.GetProperty("arguments");
+        Assert.Equal("/downloads/iso", legacyArgs.GetProperty("download-dir").GetString());
+        Assert.True(legacyArgs.GetProperty("paused").GetBoolean());
+        var jsonRpcParams = jsonRpc.Requests[1].Body.GetProperty("params");
+        Assert.Equal("/downloads/iso", jsonRpcParams.GetProperty("download_dir").GetString());
+        Assert.True(jsonRpcParams.GetProperty("paused").GetBoolean());
+        var defaults = legacy.Requests[1].Body.GetProperty("arguments");
+        Assert.False(defaults.TryGetProperty("download-dir", out _));
+        Assert.False(defaults.GetProperty("paused").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetDetailsAsync_parses_legacy_trackers_and_peers()
+    {
+        var handler = new FakeHandler(_ => Json("""
+            {"result":"success","arguments":{"torrents":[{"id":3,"name":"a","downloadDir":"/downloads","hashString":"ab",
+            "totalSize":100,"downloadedEver":100,"uploadedEver":250,"uploadRatio":2.5,"addedDate":1700000000,"doneDate":0,
+            "error":0,"errorString":"",
+            "trackerStats":[{"host":"tracker.example","lastAnnounceResult":"Success","seederCount":4,"leecherCount":1}],
+            "peers":[{"address":"10.0.0.2","clientName":"qBittorrent","progress":0.5,"rateToClient":10,"rateToPeer":20}]}]}}
+            """));
+
+        var details = await CreateClient(handler).GetDetailsAsync(3, Token);
+
+        Assert.Equal(("/downloads", 2.5, (DateTimeOffset?)null), (details.DownloadDir, details.Ratio, details.Done));
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1700000000), details.Added);
+        Assert.Equal(new TrackerInfo("tracker.example", "Success", 4, 1), Assert.Single(details.Trackers));
+        Assert.Equal(new PeerInfo("10.0.0.2", "qBittorrent", 0.5, 10, 20), Assert.Single(details.Peers));
+        var arguments = handler.Requests[0].Body.GetProperty("arguments");
+        Assert.Equal(3, arguments.GetProperty("ids")[0].GetInt32());
+    }
+
+    [Fact]
+    public async Task GetDetailsAsync_reads_snake_case_and_reports_missing_torrent()
+    {
+        var handler = new FakeHandler(
+            _ => Conflict("abc", rpcVersion: "6.0.1"),
+            _ => Json("""
+                {"jsonrpc":"2.0","id":1,"result":{"torrents":[{"id":3,"name":"a","download_dir":"/d","hash_string":"ab",
+                "total_size":1,"downloaded_ever":0,"uploaded_ever":0,"upload_ratio":-1,"added_date":0,"done_date":0,
+                "error":0,"error_string":"",
+                "tracker_stats":[{"host":"t","last_announce_result":"","seeder_count":-1,"leecher_count":-1}],
+                "peers":[]}]}}
+                """),
+            _ => Json("""{"jsonrpc":"2.0","id":1,"result":{"torrents":[]}}"""));
+        var client = CreateClient(handler);
+
+        var details = await client.GetDetailsAsync(3, Token);
+        var ex = await Assert.ThrowsAsync<TransmissionRpcException>(() => client.GetDetailsAsync(3, Token));
+
+        Assert.Null(details.Ratio);
+        Assert.Equal("t", Assert.Single(details.Trackers).Host);
+        Assert.Contains("tracker_stats", handler.Requests[1].Body.GetProperty("params").GetProperty("fields")
+            .EnumerateArray().Select(f => f.GetString()));
+        Assert.Equal(RpcErrorKind.ServerError, ex.Kind);
     }
 
     [Fact]
@@ -300,7 +371,7 @@ public sealed class TransmissionRpcClientTests
         var handler = new FakeHandler(_ => Json("""{"result":"success","arguments":{}}"""));
 
         var ex = await Assert.ThrowsAsync<TransmissionRpcException>(
-            () => CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", Token));
+            () => CreateClient(handler).AddMagnetAsync("magnet:?xt=urn:btih:ab", AddTorrentOptions.Default, Token));
 
         Assert.Equal(RpcErrorKind.InvalidResponse, ex.Kind);
     }

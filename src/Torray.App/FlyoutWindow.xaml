@@ -22,6 +22,15 @@
             <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
         </Style>
 
+        <Style x:Key="IconToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
+        </Style>
+
         <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
             <Setter Property="FontSize" Value="14" />
@@ -55,22 +64,46 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   MaxWidth="220" VerticalAlignment="Center" />
+                        <Button x:Name="ServerMenuButton" Style="{StaticResource FooterIconButton}" Content="&#xE70D;"
+                                FontSize="12" Width="28" Height="28" Margin="4,0,0,0" VerticalAlignment="Center"
+                                AutomationProperties.Name="{StaticResource FlyoutSwitchServer}" Click="OnServerMenuClick"
+                                Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}" />
+                    </StackPanel>
                     <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" Opacity="0.7" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0"
                             Visibility="{Binding IsConnected, Converter={StaticResource Visible}}">
                     <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" />
                     <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" Opacity="0.7" />
                 </StackPanel>
+                <ToggleButton Grid.Column="2" VerticalAlignment="Top" Margin="8,0,0,0" IsChecked="{Binding IsPinned}">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
+                            <Setter Property="Content" Value="&#xE718;" />
+                            <Setter Property="AutomationProperties.Name" Value="{StaticResource FlyoutPin}" />
+                            <Style.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Content" Value="&#xE840;" />
+                                    <Setter Property="AutomationProperties.Name" Value="{StaticResource FlyoutUnpin}" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
             </Grid>
 
             <!-- Add: magnet paste field and file picker -->
-            <Grid Grid.Row="1" Margin="0,12,0,0" Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+            <StackPanel Grid.Row="1" Margin="0,12,0,0" Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -99,7 +132,19 @@
                         Style="{DynamicResource AccentButtonStyle}" Command="{Binding AddMagnetCommand}" />
                 <Button Grid.Column="2" Content="{StaticResource FlyoutOpenTorrent}" Margin="8,0,0,0"
                         Command="{Binding OpenTorrentFilesCommand}" />
+                <ToggleButton Grid.Column="3" Style="{StaticResource IconToggle}" Content="&#xE712;" Margin="8,0,0,0"
+                              IsChecked="{Binding ShowAddOptions}" AutomationProperties.Name="{StaticResource FlyoutAddOptions}" />
             </Grid>
+
+            <!-- Add options apply to magnets, picked files, and drops from this panel -->
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding ShowAddOptions, Converter={StaticResource Visible}}">
+                <Label Content="{StaticResource FlyoutDownloadDir}" Target="{Binding ElementName=DownloadDirBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="DownloadDirBox" Text="{Binding DownloadDir, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="{StaticResource FlyoutDownloadDirHint}"
+                         AutomationProperties.HelpText="{StaticResource FlyoutDownloadDirHint}" />
+                <CheckBox Content="{StaticResource FlyoutStartPaused}" IsChecked="{Binding StartPaused}" Margin="0,8,0,0" />
+            </StackPanel>
+            </StackPanel>
 
             <!-- Outcome of the last action -->
             <TextBlock Grid.Row="2" Text="{Binding NoticeText}" Margin="0,8,0,0" TextWrapping="Wrap"
@@ -205,6 +250,10 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <Button Style="{StaticResource IconButton}" Content="&#xE946;"
+                                        AutomationProperties.Name="{StaticResource TorrentDetails}"
+                                        CommandParameter="{Binding}"
+                                        Command="{Binding DataContext.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
                                 <Button CommandParameter="{Binding}"
                                         Command="{Binding DataContext.ToggleStartCommand, RelativeSource={RelativeSource AncestorType=ListBox}}">
                                     <Button.Style>

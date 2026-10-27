@@ -15,6 +15,8 @@ public sealed partial class ConnectionViewModel : ObservableObject
         _clientFactory = clientFactory;
         var connection = existing ?? new ConnectionSettings();
         _id = connection.Id;
+        CanRemove = existing is not null;
+        Name = connection.Name ?? string.Empty;
         Scheme = connection.Scheme;
         Host = connection.Host;
         Port = connection.Port.ToString(CultureInfo.InvariantCulture);
@@ -26,6 +28,13 @@ public sealed partial class ConnectionViewModel : ObservableObject
     public event Action<bool>? CloseRequested;
 
     public IReadOnlyList<string> Schemes { get; } = ["http", "https"];
+
+    public bool CanRemove { get; }
+
+    public bool RemoveRequested { get; private set; }
+
+    [ObservableProperty]
+    public partial string Name { get; set; }
 
     [ObservableProperty]
     public partial string Scheme { get; set; }
@@ -87,6 +96,13 @@ public sealed partial class ConnectionViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void Remove()
+    {
+        RemoveRequested = true;
+        CloseRequested?.Invoke(true);
+    }
+
     private ConnectionSettings? TryBuild()
     {
         var host = Host.Trim();
@@ -112,6 +128,7 @@ public sealed partial class ConnectionViewModel : ObservableObject
         return new ConnectionSettings
         {
             Id = _id,
+            Name = NullIfEmpty(Name.Trim()),
             Scheme = Scheme,
             Host = host,
             Port = port,

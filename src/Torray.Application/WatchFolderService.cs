@@ -210,7 +210,7 @@ public sealed class WatchFolderService(
         try
         {
             var metainfo = await TorrentInput.ReadTorrentFileAsync(job.Path, cancellationToken);
-            var added = await torrents.AddFileAsync(metainfo, cancellationToken);
+            var added = await torrents.AddFileAsync(metainfo, AddTorrentOptions.Default, cancellationToken);
             logger.LogInformation(
                 "Watch folder uploaded {File} as torrent {Id} (duplicate: {Duplicate})", fileName, added.Id, added.IsDuplicate);
 

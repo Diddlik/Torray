@@ -29,6 +29,27 @@ public sealed class TorrentInputTests : IDisposable
         Assert.Equal(TorrentInputError.NotMagnet, ex.Error);
     }
 
+    [Theory]
+    [InlineData("", null)]
+    [InlineData("  /downloads/movies ", "/downloads/movies")]
+    [InlineData(@"D:\Downloads", @"D:\Downloads")]
+    [InlineData("c:/data", "c:/data")]
+    public void Download_dir_accepts_empty_and_absolute_paths(string text, string? expected)
+    {
+        Assert.Equal(expected, TorrentInput.ParseDownloadDir(text));
+    }
+
+    [Theory]
+    [InlineData("downloads")]
+    [InlineData("./x")]
+    [InlineData("D:")]
+    [InlineData("/down\nloads")]
+    public void Download_dir_rejects_relative_paths_and_control_characters(string text)
+    {
+        var ex = Assert.Throws<TorrentInputException>(() => TorrentInput.ParseDownloadDir(text));
+        Assert.Equal(TorrentInputError.InvalidDownloadDir, ex.Error);
+    }
+
     [Fact]
     public async Task Valid_torrent_file_is_read()
     {

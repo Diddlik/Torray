@@ -4,9 +4,12 @@
         xmlns:local="clr-namespace:Torray.App"
         Title="{StaticResource ConnectionTitle}"
         Icon="Assets/Torray.ico"
-        Width="440" SizeToContent="Height" ResizeMode="NoResize"
+        Width="500" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" Topmost="True"
-        FocusManager.FocusedElement="{Binding ElementName=HostBox}">
+        FocusManager.FocusedElement="{Binding ElementName=NameBox}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible" />
+    </Window.Resources>
     <Grid Margin="24">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -20,37 +23,43 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.Column="0">
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Margin="0,0,0,8">
+            <Label Content="{StaticResource ConnectionName}" Target="{Binding ElementName=NameBox}" />
+            <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Grid.Column="0">
             <Label Content="{StaticResource ConnectionHost}" Target="{Binding ElementName=HostBox}" />
             <TextBox x:Name="HostBox" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
-        <StackPanel Grid.Row="0" Grid.Column="2">
+        <StackPanel Grid.Row="1" Grid.Column="2">
             <Label Content="{StaticResource ConnectionPort}" Target="{Binding ElementName=PortBox}" />
             <TextBox x:Name="PortBox" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,8,0,0">
+        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,8,0,0">
             <Label Content="{StaticResource ConnectionPath}" Target="{Binding ElementName=PathBox}" />
             <TextBox x:Name="PathBox" Text="{Binding RpcPath, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
-        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,8,0,0">
+        <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,8,0,0">
             <Label Content="{StaticResource ConnectionScheme}" Target="{Binding ElementName=SchemeBox}" />
             <ComboBox x:Name="SchemeBox" ItemsSource="{Binding Schemes}" SelectedItem="{Binding Scheme}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,8,0,0">
+        <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,8,0,0">
             <Label Content="{StaticResource ConnectionUsername}" Target="{Binding ElementName=UsernameBox}" />
             <TextBox x:Name="UsernameBox" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
 
-        <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,8,0,0">
+        <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Margin="0,8,0,0">
             <Label Content="{StaticResource ConnectionPassword}" Target="{Binding ElementName=PasswordBox}" />
             <PasswordBox x:Name="PasswordBox" PasswordChanged="OnPasswordChanged" />
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Grid.ColumnSpan="3" Margin="0,16,0,0" TextWrapping="Wrap"
+        <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Margin="0,16,0,0" TextWrapping="Wrap"
                    Text="{Binding StatusMessage}" AutomationProperties.LiveSetting="Polite">
             <TextBlock.Style>
                 <Style TargetType="TextBlock">
@@ -63,8 +72,10 @@
             </TextBlock.Style>
         </TextBlock>
 
-        <DockPanel Grid.Row="5" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">
+        <DockPanel Grid.Row="6" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="{StaticResource ConnectionTest}" Command="{Binding TestCommand}" />
+            <Button DockPanel.Dock="Left" Content="{StaticResource ConnectionRemove}" Command="{Binding RemoveCommand}" Margin="8,0,0,0"
+                    Visibility="{Binding CanRemove, Converter={StaticResource Visible}}" />
             <Button DockPanel.Dock="Right" Content="{StaticResource ConnectionCancel}" IsCancel="True" MinWidth="80" Margin="8,0,0,0" />
             <Button DockPanel.Dock="Right" Content="{StaticResource ConnectionSave}" IsDefault="True" MinWidth="80"
                     Style="{DynamicResource AccentButtonStyle}" Command="{Binding SaveCommand}" />

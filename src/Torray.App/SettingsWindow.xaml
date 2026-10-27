@@ -8,6 +8,15 @@
     <StackPanel Margin="24">
         <CheckBox Content="{StaticResource SettingsStartWithWindows}" IsChecked="{Binding StartWithWindows}" />
         <CheckBox Content="{StaticResource SettingsHideOnDeactivate}" IsChecked="{Binding HideFlyoutOnDeactivate}" Margin="0,8,0,0" />
+        <CheckBox Content="{StaticResource SettingsShowNotifications}" IsChecked="{Binding ShowNotifications}" Margin="0,8,0,0" />
+
+        <TextBlock Text="{StaticResource SettingsHotkey}" FontWeight="SemiBold" Margin="0,24,0,8" />
+        <CheckBox x:Name="HotkeyEnabledBox" Content="{StaticResource SettingsHotkeyEnabled}" IsChecked="{Binding HotkeyEnabled}" />
+        <TextBox Text="{Binding Hotkey, Mode=OneWay}" IsReadOnly="True" Margin="0,8,0,0" IsReadOnlyCaretVisible="False"
+                 IsEnabled="{Binding IsChecked, ElementName=HotkeyEnabledBox}" PreviewKeyDown="OnHotkeyKeyDown"
+                 AutomationProperties.Name="{StaticResource SettingsHotkey}"
+                 AutomationProperties.HelpText="{StaticResource SettingsHotkeyHint}" />
+        <TextBlock Text="{StaticResource SettingsHotkeyHint}" Margin="0,4,0,0" Opacity="0.7" TextWrapping="Wrap" />
 
         <TextBlock Text="{StaticResource SettingsUpdates}" FontWeight="SemiBold" Margin="0,24,0,8" />
         <CheckBox Content="{StaticResource SettingsCheckForUpdates}" IsChecked="{Binding CheckForUpdates}" />

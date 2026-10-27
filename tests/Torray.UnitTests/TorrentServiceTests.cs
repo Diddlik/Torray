@@ -87,7 +87,7 @@ public sealed class TorrentServiceTests
         var client = new FakeClient(() => []);
         service.SetClient(client);
         await service.RemoveAsync(5, deleteLocalData: false, Token);
-        var added = await service.AddMagnetAsync("magnet:?xt=urn:btih:abc", Token);
+        var added = await service.AddMagnetAsync("magnet:?xt=urn:btih:abc", AddTorrentOptions.Default, Token);
 
         Assert.Equal(["remove 5 False", "magnet"], client.Calls);
         Assert.True(added.IsDuplicate);
@@ -110,10 +110,15 @@ public sealed class TorrentServiceTests
 
         public Task StopAsync(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
+        public Task<AddedTorrent> AddMetainfoAsync(
+            byte[] metainfo, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
-        public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default)
+        public Task<TorrentDetails> GetDetailsAsync(int id, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<AddedTorrent> AddMagnetAsync(
+            string magnetUri, AddTorrentOptions options, CancellationToken cancellationToken = default)
         {
             Calls.Add("magnet");
             return Task.FromResult(new AddedTorrent(1, "a", IsDuplicate: true));

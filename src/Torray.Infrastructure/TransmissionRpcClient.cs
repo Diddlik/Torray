@@ -71,16 +71,70 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
     public async Task StopAsync(int id, CancellationToken cancellationToken = default) =>
         await SendAsync("torrent-stop", "torrent_stop", cancellationToken, _ => new JsonObject { ["ids"] = new JsonArray(id) });
 
-    public Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
-        AddAsync(new JsonObject { ["metainfo"] = Convert.ToBase64String(metainfo) }, cancellationToken);
+    public Task<AddedTorrent> AddMetainfoAsync(
+        byte[] metainfo, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
+        AddAsync("metainfo", Convert.ToBase64String(metainfo), options, cancellationToken);
 
-    public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default) =>
-        AddAsync(new JsonObject { ["filename"] = magnetUri }, cancellationToken);
+    public Task<AddedTorrent> AddMagnetAsync(
+        string magnetUri, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
+        AddAsync("filename", magnetUri, options, cancellationToken);
 
-    private async Task<AddedTorrent> AddAsync(JsonObject arguments, CancellationToken cancellationToken)
+    public async Task<TorrentDetails> GetDetailsAsync(int id, CancellationToken cancellationToken = default)
     {
         var (result, dialect) = await SendAsync(
-            "torrent-add", "torrent_add", cancellationToken, _ => (JsonObject)arguments.DeepClone());
+            "torrent-get",
+            "torrent_get",
+            cancellationToken,
+            d => new JsonObject
+            {
+                ["ids"] = new JsonArray(id),
+                ["fields"] = new JsonArray([.. DetailFields.Select(f => (JsonNode)FieldName(f, d))]),
+            });
+
+        JsonElement torrent;
+        try
+        {
+            torrent = result.GetProperty("torrents").EnumerateArray().FirstOrDefault();
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException)
+        {
+            throw new TransmissionRpcException(RpcErrorKind.InvalidResponse, "Unexpected torrent-get response.", ex);
+        }
+
+        // An empty list means the torrent was removed in the meantime.
+        if (torrent.ValueKind != JsonValueKind.Object)
+        {
+            throw new TransmissionRpcException(RpcErrorKind.ServerError, "The torrent no longer exists.");
+        }
+
+        try
+        {
+            return ParseDetails(torrent, dialect);
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            throw new TransmissionRpcException(RpcErrorKind.InvalidResponse, "Unexpected torrent-get response.", ex);
+        }
+    }
+
+    private async Task<AddedTorrent> AddAsync(
+        string sourceKey, string source, AddTorrentOptions options, CancellationToken cancellationToken)
+    {
+        var (result, dialect) = await SendAsync(
+            "torrent-add",
+            "torrent_add",
+            cancellationToken,
+            d =>
+            {
+                var arguments = new JsonObject { [sourceKey] = source, ["paused"] = options.Paused };
+                // torrent-add names it "download-dir" in the legacy dialect, unlike torrent-get's "downloadDir".
+                if (options.DownloadDir is { } downloadDir)
+                {
+                    arguments[d == RpcDialect.JsonRpc ? "download_dir" : "download-dir"] = downloadDir;
+                }
+
+                return arguments;
+            });
 
         // A duplicate is still reported as success; only the result key tells it apart from a new torrent.
         var json = dialect == RpcDialect.JsonRpc;
@@ -107,6 +161,12 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
         "sizeWhenDone", "leftUntilDone", "eta", "queuePosition", "error", "errorString",
     ];
 
+    private static readonly string[] DetailFields =
+    [
+        "id", "name", "downloadDir", "hashString", "totalSize", "downloadedEver", "uploadedEver", "uploadRatio",
+        "addedDate", "doneDate", "error", "errorString", "trackerStats", "peers",
+    ];
+
     private static string FieldName(string legacyName, RpcDialect dialect) =>
         dialect == RpcDialect.JsonRpc ? JsonNamingPolicy.SnakeCaseLower.ConvertName(legacyName) : legacyName;
 
@@ -130,6 +190,41 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
             QueuePosition: Get("queuePosition").GetInt32(),
             ErrorMessage: Get("error").GetInt32() != 0 ? Get("errorString").GetString() : null);
     }
+
+    private static TorrentDetails ParseDetails(JsonElement t, RpcDialect dialect)
+    {
+        // Nested tracker and peer objects follow the same naming convention as the torrent fields.
+        JsonElement Get(JsonElement element, string legacyName) => element.GetProperty(FieldName(legacyName, dialect));
+
+        var ratio = Get(t, "uploadRatio").GetDouble();
+        return new TorrentDetails(
+            Id: Get(t, "id").GetInt32(),
+            Name: Get(t, "name").GetString() ?? string.Empty,
+            DownloadDir: Get(t, "downloadDir").GetString() ?? string.Empty,
+            HashString: Get(t, "hashString").GetString() ?? string.Empty,
+            TotalSize: Get(t, "totalSize").GetInt64(),
+            DownloadedEver: Get(t, "downloadedEver").GetInt64(),
+            UploadedEver: Get(t, "uploadedEver").GetInt64(),
+            Ratio: ratio >= 0 ? ratio : null,
+            Added: FromUnixTime(Get(t, "addedDate").GetInt64()),
+            Done: FromUnixTime(Get(t, "doneDate").GetInt64()),
+            ErrorMessage: Get(t, "error").GetInt32() != 0 ? Get(t, "errorString").GetString() : null,
+            Trackers: [.. Get(t, "trackerStats").EnumerateArray().Select(s => new TrackerInfo(
+                Get(s, "host").GetString() ?? string.Empty,
+                Get(s, "lastAnnounceResult").GetString() ?? string.Empty,
+                Get(s, "seederCount").GetInt32(),
+                Get(s, "leecherCount").GetInt32()))],
+            Peers: [.. Get(t, "peers").EnumerateArray().Select(peer => new PeerInfo(
+                Get(peer, "address").GetString() ?? string.Empty,
+                Get(peer, "clientName").GetString() ?? string.Empty,
+                Get(peer, "progress").GetDouble(),
+                Get(peer, "rateToClient").GetInt64(),
+                Get(peer, "rateToPeer").GetInt64()))]);
+    }
+
+    // Transmission uses 0 for "never".
+    private static DateTimeOffset? FromUnixTime(long seconds) =>
+        seconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(seconds) : null;
 
     private static string? GetString(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object

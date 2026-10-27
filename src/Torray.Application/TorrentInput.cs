@@ -7,6 +7,7 @@ public enum TorrentInputError
     FileTooLarge,
     NotTorrentFile,
     FileUnreadable,
+    InvalidDownloadDir,
 }
 
 public sealed class TorrentInputException(TorrentInputError error) : Exception(error.ToString())
@@ -32,6 +33,26 @@ public static class TorrentInput
         }
 
         throw new TorrentInputException(TorrentInputError.NotMagnet);
+    }
+
+    // Returns null for an empty entry, which keeps the server's default folder. The path is interpreted by the
+    // daemon, so only its form can be checked here: absolute POSIX (/downloads) or Windows (D:\Downloads).
+    public static string? ParseDownloadDir(string text)
+    {
+        var candidate = text.Trim();
+        if (candidate.Length == 0)
+        {
+            return null;
+        }
+
+        var absolute = candidate.StartsWith('/')
+            || (candidate.Length >= 3 && char.IsAsciiLetter(candidate[0]) && candidate[1] == ':' && candidate[2] is '\\' or '/');
+        if (!absolute || candidate.Any(char.IsControl))
+        {
+            throw new TorrentInputException(TorrentInputError.InvalidDownloadDir);
+        }
+
+        return candidate;
     }
 
     public static async Task<byte[]> ReadTorrentFileAsync(string path, CancellationToken cancellationToken = default)

@@ -73,12 +73,18 @@ public sealed class TorrentService(ILogger<TorrentService> logger) : BackgroundS
     public Task StopAsync(int id, CancellationToken cancellationToken = default) =>
         RunAsync(client => client.StopAsync(id, cancellationToken));
 
-    public Task<AddedTorrent> AddFileAsync(byte[] metainfo, CancellationToken cancellationToken = default) =>
-        RunAsync(client => client.AddMetainfoAsync(metainfo, cancellationToken));
+    public Task<AddedTorrent> AddFileAsync(
+        byte[] metainfo, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.AddMetainfoAsync(metainfo, options, cancellationToken));
 
     // The magnet URI is never logged: private trackers embed passkeys in it.
-    public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default) =>
-        RunAsync(client => client.AddMagnetAsync(magnetUri, cancellationToken));
+    public Task<AddedTorrent> AddMagnetAsync(
+        string magnetUri, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
+        RunAsync(client => client.AddMagnetAsync(magnetUri, options, cancellationToken));
+
+    // Read-only, so unlike the commands it does not wake the refresh loop.
+    public Task<TorrentDetails> GetDetailsAsync(int id, CancellationToken cancellationToken = default) =>
+        (_client ?? throw new InvalidOperationException("No connection is configured.")).GetDetailsAsync(id, cancellationToken);
 
     private Task RunAsync(Func<ITransmissionRpcClient, Task> command) =>
         RunAsync(async client =>

@@ -23,6 +23,8 @@ public interface IFlyoutDialogs
     RemoveChoice ConfirmRemove(string torrentName);
 
     IReadOnlyList<string> PickTorrentFiles();
+
+    void ShowDetails(TorrentDetailsViewModel details);
 }
 
 public sealed partial class FlyoutViewModel : ObservableObject
@@ -119,6 +121,20 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [ObservableProperty]
     public partial string MagnetText { get; set; } = string.Empty;
 
+    // While pinned, the flyout stays open on focus loss; hiding it always unpins.
+    [ObservableProperty]
+    public partial bool IsPinned { get; set; }
+
+    // Options for adds from the flyout; kept for the session. Watch folders always use the server defaults.
+    [ObservableProperty]
+    public partial bool ShowAddOptions { get; set; }
+
+    [ObservableProperty]
+    public partial bool StartPaused { get; set; }
+
+    [ObservableProperty]
+    public partial string DownloadDir { get; set; } = string.Empty;
+
     // Outcome of the last add/start/stop/remove, so failures are never silent.
     [ObservableProperty]
     public partial string NoticeText { get; set; } = string.Empty;
@@ -175,8 +191,9 @@ public sealed partial class FlyoutViewModel : ObservableObject
         {
             await RunAsync(null, async () =>
             {
+                var options = GetAddOptions();
                 var metainfo = await TorrentInput.ReadTorrentFileAsync(path);
-                ReportAdded(await _service.AddFileAsync(metainfo));
+                ReportAdded(await _service.AddFileAsync(metainfo, options));
             });
         }
     }
@@ -184,7 +201,7 @@ public sealed partial class FlyoutViewModel : ObservableObject
     public Task AddMagnetFromTextAsync(string text) => RunAsync(null, async () =>
     {
         var magnet = TorrentInput.ParseMagnet(text);
-        ReportAdded(await _service.AddMagnetAsync(magnet));
+        ReportAdded(await _service.AddMagnetAsync(magnet, GetAddOptions()));
         MagnetText = string.Empty;
     });
 
@@ -201,6 +218,10 @@ public sealed partial class FlyoutViewModel : ObservableObject
     private Task ToggleStartAsync(TorrentItemViewModel item) => RunAsync(item, () => item.IsStopped
         ? _service.StartAsync(item.Id)
         : _service.StopAsync(item.Id));
+
+    [RelayCommand]
+    private void ShowDetails(TorrentItemViewModel item) =>
+        Dialogs?.ShowDetails(new TorrentDetailsViewModel(item.Name, ct => _service.GetDetailsAsync(item.Id, ct)));
 
     [RelayCommand(AllowConcurrentExecutions = true)]
     private Task RemoveAsync(TorrentItemViewModel item)
@@ -259,10 +280,12 @@ public sealed partial class FlyoutViewModel : ObservableObject
         }
     }
 
+    private AddTorrentOptions GetAddOptions() => new(TorrentInput.ParseDownloadDir(DownloadDir), StartPaused);
+
     private void ReportAdded(AddedTorrent added) =>
         SetNotice(Strings.Format(added.IsDuplicate ? "NoticeDuplicate" : "NoticeAdded", added.Name), isError: false);
 
-    private void SetNotice(string text, bool isError)
+    public void SetNotice(string text, bool isError)
     {
         NoticeText = text;
         NoticeIsError = isError;

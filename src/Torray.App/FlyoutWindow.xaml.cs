@@ -30,6 +30,9 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
 
     public bool HideOnDeactivate { get; set; }
 
+    // Connection changes wait while a flyout dialog is open, so a pending remove cannot hit a different server.
+    public bool IsDialogOpen => _dialogOpen;
+
     public RemoveChoice ConfirmRemove(string torrentName)
     {
         var dialog = new RemoveTorrentWindow(torrentName) { Owner = this };
@@ -40,6 +43,12 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     {
         var dialog = new Microsoft.Win32.OpenFileDialog { Filter = Strings.Get("TorrentFileFilter"), Multiselect = true };
         return ShowOwnedDialog(() => dialog.ShowDialog(this)) == true ? dialog.FileNames : [];
+    }
+
+    public void ShowDetails(TorrentDetailsViewModel details)
+    {
+        var dialog = new TorrentDetailsWindow(details) { Owner = this };
+        ShowOwnedDialog(() => dialog.ShowDialog());
     }
 
     public void Toggle()
@@ -76,7 +85,7 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
-        if (HideOnDeactivate && !_dialogOpen)
+        if (HideOnDeactivate && !_dialogOpen && !_viewModel.IsPinned)
         {
             HideFlyout();
         }
@@ -107,6 +116,7 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
 
     private void HideFlyout()
     {
+        _viewModel.IsPinned = false;
         Hide();
         _hiddenAt = Environment.TickCount64;
     }
@@ -213,6 +223,24 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     private void OnWatchFoldersClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowWatchFolders();
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowSettings();
+
+    private void OnServerMenuClick(object sender, RoutedEventArgs e)
+    {
+        var app = (App)System.Windows.Application.Current;
+        var menu = new ContextMenu { PlacementTarget = ServerMenuButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var (connection, isActive) in app.Servers)
+        {
+            var item = new MenuItem { Header = connection.GetDisplayName(), IsCheckable = true, IsChecked = isActive };
+            item.Click += (_, _) => app.SwitchServer(connection.Id);
+            menu.Items.Add(item);
+        }
+
+        menu.Items.Add(new Separator());
+        var add = new MenuItem { Header = Strings.Get("TrayAddServer") };
+        add.Click += (_, _) => app.ShowConnection(addNew: true);
+        menu.Items.Add(add);
+        menu.IsOpen = true;
+    }
 
     // Row actions without a mouse: Space or Enter pauses/resumes, Delete removes (still asking first).
     private void OnTorrentListKeyDown(object sender, KeyEventArgs e)

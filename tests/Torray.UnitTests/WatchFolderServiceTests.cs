@@ -182,7 +182,8 @@ public sealed class WatchFolderServiceTests : IDisposable
 
         public Exception? Failure { get; set; }
 
-        public Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default)
+        public Task<AddedTorrent> AddMetainfoAsync(
+            byte[] metainfo, AddTorrentOptions options, CancellationToken cancellationToken = default)
         {
             Attempts++;
             if (Failure is not null)
@@ -206,7 +207,11 @@ public sealed class WatchFolderServiceTests : IDisposable
 
         public Task StopAsync(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
-        public Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default) =>
+        public Task<AddedTorrent> AddMagnetAsync(
+            string magnetUri, AddTorrentOptions options, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<TorrentDetails> GetDetailsAsync(int id, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
     }
 }

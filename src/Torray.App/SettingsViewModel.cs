@@ -14,6 +14,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         StartWithWindows = startWithWindows;
         HideFlyoutOnDeactivate = settings.HideFlyoutOnDeactivate;
         CheckForUpdates = settings.CheckForUpdates;
+        ShowNotifications = settings.ShowNotifications;
+        HotkeyEnabled = settings.HotkeyEnabled;
+        Hotkey = settings.Hotkey;
         if (updates.ReadyVersion is { } version)
         {
             UpdateStatus = Strings.Format("UpdateReady", version);
@@ -33,6 +36,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string UpdateStatus { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool ShowNotifications { get; set; }
+
+    [ObservableProperty]
+    public partial bool HotkeyEnabled { get; set; }
+
+    // Only ever set from a captured key press or the stored value, so it is always a valid gesture.
+    [ObservableProperty]
+    public partial string Hotkey { get; set; }
 
     [RelayCommand]
     private async Task CheckNowAsync(CancellationToken cancellationToken)

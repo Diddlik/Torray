@@ -13,9 +13,11 @@ public interface ITransmissionRpcClient
 
     Task StopAsync(int id, CancellationToken cancellationToken = default);
 
-    Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, CancellationToken cancellationToken = default);
+    Task<AddedTorrent> AddMetainfoAsync(byte[] metainfo, AddTorrentOptions options, CancellationToken cancellationToken = default);
 
-    Task<AddedTorrent> AddMagnetAsync(string magnetUri, CancellationToken cancellationToken = default);
+    Task<AddedTorrent> AddMagnetAsync(string magnetUri, AddTorrentOptions options, CancellationToken cancellationToken = default);
+
+    Task<TorrentDetails> GetDetailsAsync(int id, CancellationToken cancellationToken = default);
 }
 
 public sealed record AddedTorrent(int Id, string Name, bool IsDuplicate);
