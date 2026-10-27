@@ -117,6 +117,7 @@ Design:
 - Test command: `dotnet test Torray.slnx` (xUnit v3)
 - Lint and format command: `dotnet format Torray.slnx --verify-no-changes`
 - Local run command: `dotnet run --project src/Torray.App`
+- Installer command: `./scripts/pack.ps1` (vpk as a local dotnet tool, output in `artifacts/releases`). It installs to `%LOCALAPPDATA%\TorrayApp`. That folder must never be the data folder `%LOCALAPPDATA%\Torray`, because uninstalling deletes the install folder. The vpk tool version must match the `Velopack` package version.
 - Required environment: Windows, .NET 10 SDK.
 - Important entry points: `src/Torray.App/Program.cs` (Velopack hook, single instance, host), `src/Torray.App/App.xaml.cs` (tray and flyout).
 - Architecture constraints: layered as in `REQUIREMENTS.md` section 7 with a `Torray.` prefix. Domain has no dependencies. Infrastructure implements Domain interfaces. App composes everything with `Microsoft.Extensions.Hosting`. Add `Torray.Application` only when the first application-level orchestration exists (polling, planned for milestone 3). User-facing strings live in `src/Torray.App/Resources/Strings.xaml`.

@@ -25,6 +25,9 @@ dotnet test Torray.slnx
 dotnet run --project src/Torray.App
 ```
 
+Build the installer with `./scripts/pack.ps1`. It writes `artifacts/releases/TorrayApp-win-Setup.exe`.
+The installer is not code-signed yet, so Windows SmartScreen shows a warning.
+
 Left-click the tray icon to toggle the flyout. Right-click it for the menu. Esc or a click elsewhere hides the flyout.
 Set up the server under **Connection** in the tray menu or the flyout.
 
