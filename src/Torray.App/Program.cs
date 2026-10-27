@@ -15,7 +15,9 @@ internal static class Program
     private static void Main(string[] args)
     {
         // Velopack must run before anything else: it handles install/update hooks and may exit the process.
-        VelopackApp.Build().Run();
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => Autostart.Set(false))
+            .Run();
 
         using var singleInstance = new Mutex(true, @"Local\Torray.SingleInstance", out var isFirstInstance);
         if (!isFirstInstance)
@@ -54,6 +56,7 @@ internal static class Program
             builder.Services.AddSingleton<IWatchJobStore>(new JsonWatchJobStore(Path.Combine(dataDirectory, "watch-jobs.json")));
             builder.Services.AddSingleton<WatchFolderService>();
             builder.Services.AddHostedService(services => services.GetRequiredService<WatchFolderService>());
+            builder.Services.AddSingleton<UpdateService>();
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();

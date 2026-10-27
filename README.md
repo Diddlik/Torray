@@ -3,7 +3,7 @@
 A Windows tray flyout for managing a remote [Transmission](https://transmissionbt.com/) daemon over RPC.
 See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
-Status: milestone 5 (watch folders). The flyout shows the torrent list with status, progress, rates, ETA, filters (including errors), and aggregate speeds.
+Status: milestone 6 (hardening). The flyout shows the torrent list with status, progress, rates, ETA, filters (including errors), and aggregate speeds.
 It refreshes every 2 s while open and every 20 s while hidden, and backs off up to 60 s while the server is unreachable.
 
 - Add torrents: paste a magnet link, use **Open .torrent…**, or drop `.torrent` files or magnet links onto the flyout.
@@ -12,12 +12,15 @@ It refreshes every 2 s while open and every 20 s while hidden, and backs off up 
   Optionally the file moves to an `Added` subfolder after the server confirmed it. Uploads that fail because the server
   is unreachable are retried with backoff (up to 10 attempts, immediately when the connection returns); invalid files are
   reported and kept. Upload state survives restarts (`%LOCALAPPDATA%\Torray\watch-jobs.json`).
+- Settings (gear icon or tray menu): start with Windows, hide the panel on focus loss, automatic update checks.
+- Updates come from GitHub Releases. A downloaded update shows **Restart to update** in the flyout; if you ignore it, it installs when Torray exits.
+- Keyboard: Esc hides the panel; in the list, Space or Enter pauses/resumes and Delete removes the selected torrent.
 - Remove asks first: **Remove from list** keeps the downloaded files and is the default; **Delete with data** also deletes the files on the server.
 
 ## Transmission compatibility
 
 Transmission 4.0 and newer. Torray detects the protocol automatically: legacy RPC for 4.0, JSON-RPC 2.0 for 4.1+.
-Tested with Transmission 4.0.6 and 4.1.3.
+Tested with Transmission 4.0.6 and 4.1.3, including a server with 1,200 torrents.
 
 Keep RPC reachable only on a trusted LAN, a VPN, or behind an HTTPS reverse proxy with authentication.
 
@@ -34,7 +37,10 @@ dotnet test Torray.slnx
 dotnet run --project src/Torray.App
 ```
 
-Build the installer with `./scripts/pack.ps1`. It writes `artifacts/releases/TorrayApp-win-Setup.exe`.
+To publish a release, set `<Version>` in `Directory.Build.props`, commit, and push a matching tag (for example `v0.5.0`).
+The release workflow builds the installer and publishes it as a GitHub release; installed copies update from there.
+
+Build the installer locally with `./scripts/pack.ps1`. It writes `artifacts/releases/TorrayApp-win-Setup.exe`.
 The installer is not code-signed yet, so Windows SmartScreen shows a warning.
 
 Left-click the tray icon to toggle the flyout. Right-click it for the menu. Esc or a click elsewhere hides the flyout.

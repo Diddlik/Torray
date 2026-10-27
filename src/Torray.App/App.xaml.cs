@@ -16,6 +16,7 @@ public partial class App(
     ITransmissionRpcClientFactory rpcClientFactory,
     TorrentService refresh,
     WatchFolderService watchFolders,
+    UpdateService updates,
     ILogger<App> logger) : System.Windows.Application
 {
     private AppSettings _settings = new();
@@ -36,6 +37,9 @@ public partial class App(
         refresh.Updated += snapshot => Dispatcher.InvokeAsync(() => viewModel.Apply(snapshot));
         watchFolders.Updated += snapshot => Dispatcher.InvokeAsync(() => viewModel.ApplyWatch(snapshot));
         watchFolders.Configure(_settings.WatchFolders);
+        updates.UpdateReady += version => Dispatcher.InvokeAsync(() => viewModel.SetUpdateReady(version));
+        viewModel.RestartToUpdate = RestartToUpdate;
+        _ = RunUpdateChecksAsync();
         _flyout = new FlyoutWindow(viewModel, _settings.HideFlyoutOnDeactivate);
         _flyout.IsVisibleChanged += (_, _) => refresh.SetVisible(_flyout.IsVisible);
         _trayIcon = CreateTrayIcon();
@@ -53,7 +57,80 @@ public partial class App(
     protected override void OnExit(ExitEventArgs e)
     {
         _trayIcon?.Dispose();
+        updates.ApplyOnExit();
         base.OnExit(e);
+    }
+
+    private async Task RunUpdateChecksAsync()
+    {
+        // Give startup and the first torrent refresh priority over the network check.
+        await Task.Delay(TimeSpan.FromMinutes(1));
+        while (true)
+        {
+            if (_settings.CheckForUpdates && updates.ReadyVersion is null)
+            {
+                await updates.CheckAndDownloadAsync();
+            }
+
+            await Task.Delay(TimeSpan.FromHours(24));
+        }
+    }
+
+    private void RestartToUpdate()
+    {
+        // Settings dialogs may hold unsaved input; the update waits until they are closed.
+        if (_settingsDialogOpen)
+        {
+            return;
+        }
+
+        logger.LogInformation("Restarting to install update {Version}", updates.ReadyVersion);
+        Serilog.Log.CloseAndFlush();
+        updates.ApplyAndRestart();
+    }
+
+    public void ShowSettings()
+    {
+        if (_settingsDialogOpen)
+        {
+            return;
+        }
+
+        _settingsDialogOpen = true;
+        try
+        {
+            var viewModel = new SettingsViewModel(_settings, Autostart.IsEnabled, updates);
+            if (new SettingsWindow(viewModel).ShowDialog() == true)
+            {
+                SaveGeneralSettings(viewModel);
+            }
+        }
+        finally
+        {
+            _settingsDialogOpen = false;
+        }
+    }
+
+    private async void SaveGeneralSettings(SettingsViewModel viewModel)
+    {
+        try
+        {
+            Autostart.Set(viewModel.StartWithWindows);
+            var settings = _settings with
+            {
+                HideFlyoutOnDeactivate = viewModel.HideFlyoutOnDeactivate,
+                CheckForUpdates = viewModel.CheckForUpdates,
+            };
+            await settingsStore.SaveAsync(settings);
+            _settings = settings;
+            _flyout!.HideOnDeactivate = settings.HideFlyoutOnDeactivate;
+            logger.LogInformation("Settings saved");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            logger.LogError(ex, "Settings could not be saved");
+            MessageBox.Show(Strings.Get("SettingsSaveFailed"), Strings.Get("AppName"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
@@ -192,6 +269,7 @@ public partial class App(
         menu.Items.Add(Strings.Get("TrayOpen"), null, (_, _) => _flyout?.ShowNearTray());
         menu.Items.Add(Strings.Get("TrayConnection"), null, (_, _) => ShowConnection());
         menu.Items.Add(Strings.Get("TrayWatchFolders"), null, (_, _) => ShowWatchFolders());
+        menu.Items.Add(Strings.Get("TraySettings"), null, (_, _) => ShowSettings());
         menu.Items.Add(Strings.Get("TrayAbout"), null, (_, _) => ShowAbout());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Strings.Get("TrayExit"), null, (_, _) => ExitApplication());

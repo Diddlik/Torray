@@ -56,6 +56,23 @@ public sealed partial class FlyoutViewModel : ObservableObject
 
     public IFlyoutDialogs? Dialogs { get; set; }
 
+    public Action? RestartToUpdate { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsUpdateReady { get; set; }
+
+    [ObservableProperty]
+    public partial string UpdateReadyText { get; set; } = string.Empty;
+
+    public void SetUpdateReady(string version)
+    {
+        UpdateReadyText = Strings.Format("FlyoutUpdateReady", version);
+        IsUpdateReady = true;
+    }
+
+    [RelayCommand]
+    private void RestartNow() => RestartToUpdate?.Invoke();
+
     public IReadOnlyList<FilterOption> Filters { get; }
 
     public ListCollectionView Torrents { get; }

@@ -24,6 +24,24 @@
     <sys:String x:Key="FlyoutWatchDetails">Details</sys:String>
 
     <sys:String x:Key="TrayWatchFolders">Watch folders…</sys:String>
+    <sys:String x:Key="TraySettings">Settings…</sys:String>
+
+    <sys:String x:Key="FlyoutSettings">Settings</sys:String>
+    <sys:String x:Key="FlyoutUpdateReady">Torray {0} is ready to install.</sys:String>
+    <sys:String x:Key="FlyoutRestartToUpdate">Restart to update</sys:String>
+
+    <sys:String x:Key="SettingsTitle">Settings</sys:String>
+    <sys:String x:Key="SettingsStartWithWindows">Start Torray when I sign in to Windows</sys:String>
+    <sys:String x:Key="SettingsHideOnDeactivate">Hide the panel when I click elsewhere</sys:String>
+    <sys:String x:Key="SettingsUpdates">Updates</sys:String>
+    <sys:String x:Key="SettingsCheckForUpdates">Check for updates automatically</sys:String>
+    <sys:String x:Key="SettingsCheckNow">Check now</sys:String>
+    <sys:String x:Key="SettingsSaveFailed">The settings could not be saved. Check that %LOCALAPPDATA%\Torray is writable and try again.</sys:String>
+    <sys:String x:Key="UpdateChecking">Checking…</sys:String>
+    <sys:String x:Key="UpdateUpToDate">Torray is up to date.</sys:String>
+    <sys:String x:Key="UpdateReady">Version {0} is downloaded. Restart Torray from the panel, or it installs when you exit.</sys:String>
+    <sys:String x:Key="UpdateFailed">Could not check for updates. Check your internet connection and try again.</sys:String>
+    <sys:String x:Key="UpdateNotInstalled">Updates are only available in the installed version.</sys:String>
 
     <sys:String x:Key="WatchTitle">Watch folders</sys:String>
     <sys:String x:Key="WatchIntro">While Torray is running, new .torrent files in these folders are uploaded to Transmission automatically.</sys:String>

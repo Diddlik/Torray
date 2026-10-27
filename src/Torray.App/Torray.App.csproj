@@ -6,11 +6,13 @@
     <UseWPF>true</UseWPF>
     <!-- WinForms is used only for the tray NotifyIcon, which WPF lacks. -->
     <UseWindowsForms>true</UseWindowsForms>
-    <!-- ThemeMode (Fluent, light/dark following Windows) is still marked experimental. -->
-    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <!-- WPF0001: ThemeMode (Fluent, light/dark following Windows) is still marked experimental.
+         WFO0003: the DPI mode must come from app.manifest because WPF, not WinForms, owns startup. -->
+    <NoWarn>$(NoWarn);WPF0001;WFO0003</NoWarn>
     <AssemblyName>Torray</AssemblyName>
     <RootNamespace>Torray.App</RootNamespace>
     <ApplicationIcon>Assets\Torray.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <!-- Torray.svg is the icon source; regenerate the .ico with:

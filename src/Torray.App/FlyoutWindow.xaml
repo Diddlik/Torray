@@ -12,6 +12,16 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
 
+        <Style x:Key="FooterIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
+        </Style>
+
         <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
             <Setter Property="FontSize" Value="14" />
@@ -125,6 +135,11 @@
                     </DockPanel>
                 </Border>
 
+                <DockPanel Margin="0,8,0,0" Visibility="{Binding IsUpdateReady, Converter={StaticResource Visible}}">
+                    <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutRestartToUpdate}" Command="{Binding RestartNowCommand}" />
+                    <TextBlock Text="{Binding UpdateReadyText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+
                 <DockPanel Margin="0,8,0,0" Visibility="{Binding HasWatchIssues, Converter={StaticResource Visible}}">
                     <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchDetails}" Click="OnWatchFoldersClick" />
                     <TextBlock Text="{Binding WatchStatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
@@ -149,6 +164,7 @@
 
             <!-- Torrent list -->
             <ListBox Grid.Row="5" Margin="0,8,0,0" ItemsSource="{Binding Torrents}"
+                     PreviewKeyDown="OnTorrentListKeyDown"
                      AutomationProperties.Name="{StaticResource FlyoutTorrentList}"
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -227,7 +243,10 @@
 
             <!-- Footer -->
             <DockPanel Grid.Row="6" Margin="0,12,0,0">
-                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource FooterIconButton}" Content="&#xE946;"
+                        AutomationProperties.Name="{StaticResource FlyoutAbout}" Click="OnAboutClick" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource FooterIconButton}" Content="&#xE713;"
+                        AutomationProperties.Name="{StaticResource FlyoutSettings}" Click="OnSettingsClick" />
                 <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" Margin="8,0,0,0" />
                 <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchFolders}" Click="OnWatchFoldersClick" />
                 <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />

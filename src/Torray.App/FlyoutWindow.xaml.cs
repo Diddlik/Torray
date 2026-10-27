@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
+using System.Windows.Interop;
 using Forms = System.Windows.Forms;
 
 namespace Torray.App;
@@ -13,7 +15,6 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     private const long ReopenGuardMilliseconds = 300;
 
     private readonly FlyoutViewModel _viewModel;
-    private readonly bool _hideOnDeactivate;
     private bool _allowClose;
     private bool _dialogOpen;
     private long _hiddenAt;
@@ -24,8 +25,10 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
         _viewModel = viewModel;
         viewModel.Dialogs = this;
         DataContext = viewModel;
-        _hideOnDeactivate = hideOnDeactivate;
+        HideOnDeactivate = hideOnDeactivate;
     }
+
+    public bool HideOnDeactivate { get; set; }
 
     public RemoveChoice ConfirmRemove(string torrentName)
     {
@@ -73,7 +76,7 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     protected override void OnDeactivated(EventArgs e)
     {
         base.OnDeactivated(e);
-        if (_hideOnDeactivate && !_dialogOpen)
+        if (HideOnDeactivate && !_dialogOpen)
         {
             HideFlyout();
         }
@@ -161,23 +164,46 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
         }
     }
 
-    // The taskbar edge is wherever the working area is inset from the screen bounds; the tray sits at the
-    // far end of a horizontal taskbar and at the bottom of a vertical one.
-    private void PositionNearTray()
+    // Placement works in physical pixels of the monitor under the cursor (where the tray icon was clicked), so the
+    // flyout lands correctly on any monitor regardless of each monitor's scaling. The taskbar edge is wherever the
+    // working area is inset from the screen bounds; the tray sits at the far end of a horizontal taskbar and at the
+    // bottom of a vertical one.
+    private void PositionNearTray() => PositionNear(Forms.Cursor.Position);
+
+    private void PositionNear(System.Drawing.Point cursor)
     {
-        var screen = Forms.Screen.FromPoint(Forms.Cursor.Position);
+        var screen = Forms.Screen.FromPoint(cursor);
         var work = screen.WorkingArea;
         var bounds = screen.Bounds;
-        var dpi = VisualTreeHelper.GetDpi(this);
+        Native.GetDpiForMonitor(Native.MonitorFromPoint(new Native.Point(cursor.X, cursor.Y), 2), 0, out var dpi, out _);
+        var scale = dpi / 96.0;
 
-        Height = Math.Min(DefaultHeight, work.Height / dpi.DpiScaleY - 2 * EdgeMargin);
+        var margin = (int)Math.Round(EdgeMargin * scale);
+        var width = (int)Math.Round(Width * scale);
+        var height = (int)Math.Min(Math.Round(DefaultHeight * scale), work.Height - 2 * margin);
+        var x = work.Left > bounds.Left ? work.Left + margin : work.Right - width - margin;
+        var y = work.Top > bounds.Top ? work.Top + margin : work.Bottom - height - margin;
 
-        Left = work.Left > bounds.Left
-            ? work.Left / dpi.DpiScaleX + EdgeMargin
-            : work.Right / dpi.DpiScaleX - Width - EdgeMargin;
-        Top = work.Top > bounds.Top
-            ? work.Top / dpi.DpiScaleY + EdgeMargin
-            : work.Bottom / dpi.DpiScaleY - Height - EdgeMargin;
+        var handle = new WindowInteropHelper(this).EnsureHandle();
+        Native.SetWindowPos(handle, 0, x, y, width, height, Native.NoZOrder | Native.NoActivate);
+    }
+
+    private static class Native
+    {
+        public const uint NoZOrder = 0x0004;
+        public const uint NoActivate = 0x0010;
+
+        public record struct Point(int X, int Y);
+
+        [DllImport("user32.dll")]
+        public static extern nint MonitorFromPoint(Point point, uint flags);
+
+        [DllImport("shcore.dll")]
+        public static extern int GetDpiForMonitor(nint monitor, int dpiType, out uint dpiX, out uint dpiY);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(nint window, nint insertAfter, int x, int y, int width, int height, uint flags);
     }
 
     private void OnAboutClick(object sender, RoutedEventArgs e) => App.ShowAbout();
@@ -185,4 +211,27 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     private void OnConnectionClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowConnection();
 
     private void OnWatchFoldersClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowWatchFolders();
+
+    private void OnSettingsClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowSettings();
+
+    // Row actions without a mouse: Space or Enter pauses/resumes, Delete removes (still asking first).
+    private void OnTorrentListKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.OriginalSource is not ListBoxItem { DataContext: TorrentItemViewModel item })
+        {
+            return;
+        }
+
+        ICommand? command = e.Key switch
+        {
+            Key.Space or Key.Enter => _viewModel.ToggleStartCommand,
+            Key.Delete => _viewModel.RemoveCommand,
+            _ => null,
+        };
+        if (command is not null)
+        {
+            command.Execute(item);
+            e.Handled = true;
+        }
+    }
 }

@@ -1,0 +1,44 @@
+name: Release
+
+# Push a tag like v0.5.0 that matches <Version> in Directory.Build.props. Installed apps pick up the published
+# release through Velopack's GitHub update source.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check that the tag matches the version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ("v$version" -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME does not match version $version." }
+
+      - run: dotnet test Torray.slnx
+
+      - name: Download the previous release for delta updates
+        shell: pwsh
+        run: |
+          dotnet tool restore
+          dotnet vpk download github --repoUrl "https://github.com/${{ github.repository }}" --token "${{ secrets.GITHUB_TOKEN }}" --outputDir artifacts/releases
+
+      - name: Pack
+        shell: pwsh
+        run: ./scripts/pack.ps1 -KeepReleases
+
+      - name: Publish the GitHub release
+        shell: pwsh
+        run: >
+          dotnet vpk upload github --repoUrl "https://github.com/${{ github.repository }}"
+          --token "${{ secrets.GITHUB_TOKEN }}" --outputDir artifacts/releases
+          --publish --tag "${{ github.ref_name }}" --releaseName "Torray ${{ github.ref_name }}"
