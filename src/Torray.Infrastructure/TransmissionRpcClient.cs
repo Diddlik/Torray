@@ -36,6 +36,55 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
         return new ServerInfo(GetString(result, "version") ?? "—", semver, _dialect.Value);
     }
 
+    public async Task<IReadOnlyList<Torrent>> GetTorrentsAsync(CancellationToken cancellationToken = default)
+    {
+        var (result, dialect) = await SendAsync(
+            "torrent-get",
+            "torrent_get",
+            cancellationToken,
+            d => new JsonObject { ["fields"] = new JsonArray([.. TorrentFields.Select(f => (JsonNode)FieldName(f, d))]) });
+
+        try
+        {
+            return [.. result.GetProperty("torrents").EnumerateArray().Select(t => ParseTorrent(t, dialect))];
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            throw new TransmissionRpcException(RpcErrorKind.InvalidResponse, "Unexpected torrent-get response.", ex);
+        }
+    }
+
+    // Legacy (camelCase) names; JSON-RPC uses the snake_case form of the same fields.
+    private static readonly string[] TorrentFields =
+    [
+        "id", "name", "status", "percentDone", "rateDownload", "rateUpload",
+        "sizeWhenDone", "leftUntilDone", "eta", "queuePosition", "error", "errorString",
+    ];
+
+    private static string FieldName(string legacyName, RpcDialect dialect) =>
+        dialect == RpcDialect.JsonRpc ? JsonNamingPolicy.SnakeCaseLower.ConvertName(legacyName) : legacyName;
+
+    private static Torrent ParseTorrent(JsonElement t, RpcDialect dialect)
+    {
+        JsonElement Get(string legacyName) => t.GetProperty(FieldName(legacyName, dialect));
+
+        var status = Get("status").GetInt32();
+        var eta = Get("eta").GetInt64();
+        return new Torrent(
+            Id: Get("id").GetInt32(),
+            Name: Get("name").GetString() ?? string.Empty,
+            Status: Enum.IsDefined((TorrentStatus)status) ? (TorrentStatus)status : TorrentStatus.Unknown,
+            PercentDone: Get("percentDone").GetDouble(),
+            DownloadRate: Get("rateDownload").GetInt64(),
+            UploadRate: Get("rateUpload").GetInt64(),
+            SizeWhenDone: Get("sizeWhenDone").GetInt64(),
+            LeftUntilDone: Get("leftUntilDone").GetInt64(),
+            // Transmission reports -1 (not available) or -2 (unknown) instead of a duration.
+            Eta: eta >= 0 ? TimeSpan.FromSeconds(eta) : null,
+            QueuePosition: Get("queuePosition").GetInt32(),
+            ErrorMessage: Get("error").GetInt32() != 0 ? Get("errorString").GetString() : null);
+    }
+
     private static string? GetString(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object
         && element.TryGetProperty(name, out var value)
@@ -44,15 +93,23 @@ public sealed class TransmissionRpcClient(HttpClient httpClient, Uri endpoint, A
             : null;
 
     private async Task<(JsonElement Result, RpcDialect Dialect)> SendAsync(
-        string legacyMethod, string jsonRpcMethod, CancellationToken cancellationToken)
+        string legacyMethod,
+        string jsonRpcMethod,
+        CancellationToken cancellationToken,
+        Func<RpcDialect, JsonObject>? buildArguments = null)
     {
         // One retry covers the CSRF handshake: the first request learns the session id from the 409 response.
         for (var attempt = 0; ; attempt++)
         {
+            // Arguments are rebuilt per attempt because the handshake may switch the dialect and thus the field names.
             var dialect = _dialect ?? RpcDialect.Legacy;
             var body = dialect == RpcDialect.JsonRpc
                 ? new JsonObject { ["jsonrpc"] = "2.0", ["method"] = jsonRpcMethod, ["id"] = 1 }
                 : new JsonObject { ["method"] = legacyMethod };
+            if (buildArguments is not null)
+            {
+                body[dialect == RpcDialect.JsonRpc ? "params" : "arguments"] = buildArguments(dialect);
+            }
 
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {

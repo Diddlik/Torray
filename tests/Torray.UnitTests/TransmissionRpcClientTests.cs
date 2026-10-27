@@ -179,6 +179,60 @@ public sealed class TransmissionRpcClientTests
         Assert.Equal($"Basic {withAuth.Parameter}", handler.Requests[0].Headers["Authorization"]);
     }
 
+    [Fact]
+    public async Task GetTorrentsAsync_parses_legacy_fields()
+    {
+        var handler = new FakeHandler(_ => Json("""
+            {"result":"success","arguments":{"torrents":[{"id":7,"name":"debian.iso","status":4,"percentDone":0.25,
+            "rateDownload":1000,"rateUpload":20,"sizeWhenDone":4000,"leftUntilDone":3000,"eta":-1,"queuePosition":2,
+            "error":0,"errorString":""}]}}
+            """));
+
+        var torrents = await CreateClient(handler).GetTorrentsAsync(Token);
+
+        Assert.Equal(
+            new Torrent(7, "debian.iso", TorrentStatus.Downloading, 0.25, 1000, 20, 4000, 3000, null, 2, null),
+            Assert.Single(torrents));
+        var arguments = handler.Requests[0].Body.GetProperty("arguments");
+        Assert.Contains("percentDone", arguments.GetProperty("fields").EnumerateArray().Select(f => f.GetString()));
+    }
+
+    [Fact]
+    public async Task GetTorrentsAsync_uses_snake_case_params_for_json_rpc()
+    {
+        var handler = new FakeHandler(
+            _ => Conflict("abc", rpcVersion: "6.0.1"),
+            _ => Json("""
+                {"jsonrpc":"2.0","id":1,"result":{"torrents":[{"id":1,"name":"a","status":6,"percent_done":1,
+                "rate_download":0,"rate_upload":5,"size_when_done":10,"left_until_done":0,"eta":90,"queue_position":0,
+                "error":3,"error_string":"No data found"}]}}
+                """));
+
+        var torrent = Assert.Single(await CreateClient(handler).GetTorrentsAsync(Token));
+
+        Assert.Equal(TorrentStatus.Seeding, torrent.Status);
+        Assert.Equal(TimeSpan.FromSeconds(90), torrent.Eta);
+        Assert.Equal("No data found", torrent.ErrorMessage);
+        var fields = handler.Requests[1].Body.GetProperty("params").GetProperty("fields").EnumerateArray()
+            .Select(f => f.GetString());
+        Assert.Contains("percent_done", fields);
+    }
+
+    [Fact]
+    public async Task GetTorrentsAsync_maps_unknown_status_and_rejects_missing_fields()
+    {
+        var unknownStatus = new FakeHandler(_ => Json("""
+            {"result":"success","arguments":{"torrents":[{"id":1,"name":"a","status":42,"percentDone":0,
+            "rateDownload":0,"rateUpload":0,"sizeWhenDone":0,"leftUntilDone":0,"eta":-2,"queuePosition":0,
+            "error":0,"errorString":""}]}}
+            """));
+        var missingField = new FakeHandler(_ => Json("""{"result":"success","arguments":{"torrents":[{"id":1}]}}"""));
+
+        Assert.Equal(TorrentStatus.Unknown, Assert.Single(await CreateClient(unknownStatus).GetTorrentsAsync(Token)).Status);
+        var ex = await Assert.ThrowsAsync<TransmissionRpcException>(() => CreateClient(missingField).GetTorrentsAsync(Token));
+        Assert.Equal(RpcErrorKind.InvalidResponse, ex.Kind);
+    }
+
     private static TransmissionRpcClient CreateClient(FakeHandler handler) => new(new HttpClient(handler), Endpoint, null);
 
     private static HttpResponseMessage Conflict(string sessionId, string? rpcVersion = null)

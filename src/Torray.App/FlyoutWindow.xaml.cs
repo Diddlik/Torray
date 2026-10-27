@@ -16,9 +16,10 @@ public partial class FlyoutWindow : Window
     private bool _allowClose;
     private long _hiddenAt;
 
-    public FlyoutWindow(bool hideOnDeactivate)
+    public FlyoutWindow(FlyoutViewModel viewModel, bool hideOnDeactivate)
     {
         InitializeComponent();
+        DataContext = viewModel;
         _hideOnDeactivate = hideOnDeactivate;
     }
 
@@ -110,9 +111,7 @@ public partial class FlyoutWindow : Window
             : work.Bottom / dpi.DpiScaleY - Height - EdgeMargin;
     }
 
-    public void SetServer(string? host) => ServerText.Text = host ?? Strings.Get("FlyoutNotConfigured");
-
     private void OnAboutClick(object sender, RoutedEventArgs e) => App.ShowAbout();
 
-    private void OnConnectionClick(object sender, RoutedEventArgs e) => ((App)Application.Current).ShowConnection();
+    private void OnConnectionClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowConnection();
 }

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Torray.App/Torray.App.csproj" />
+    <Project Path="src/Torray.Application/Torray.Application.csproj" />
     <Project Path="src/Torray.Domain/Torray.Domain.csproj" />
     <Project Path="src/Torray.Infrastructure/Torray.Infrastructure.csproj" />
   </Folder>

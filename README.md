@@ -3,7 +3,9 @@
 A Windows tray flyout for managing a remote [Transmission](https://transmissionbt.com/) daemon over RPC.
 See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
-Status: milestone 2 (RPC core). You can configure and test a Transmission connection. The torrent list is not implemented yet.
+Status: milestone 3 (read-only dashboard). The flyout shows the torrent list with status, progress, rates, and ETA, plus filters and aggregate speeds.
+It refreshes every 2 s while open and every 20 s while hidden, and backs off up to 60 s while the server is unreachable.
+Torrent actions (add, pause, remove) are not implemented yet.
 
 ## Transmission compatibility
 

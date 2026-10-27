@@ -9,7 +9,35 @@
     <sys:String x:Key="TrayExit">Exit</sys:String>
 
     <sys:String x:Key="FlyoutNotConfigured">No server configured</sys:String>
+    <sys:String x:Key="FlyoutSetUp">Set up connection</sys:String>
+    <sys:String x:Key="FlyoutConnecting">Connecting…</sys:String>
+    <sys:String x:Key="FlyoutConnected">Connected</sys:String>
+    <sys:String x:Key="FlyoutCannotConnect">Cannot connect</sys:String>
+    <sys:String x:Key="FlyoutLastRefresh">Last refresh: {0:T}</sys:String>
+    <sys:String x:Key="FlyoutNeverRefreshed">No successful refresh yet</sys:String>
+    <sys:String x:Key="FlyoutRetry">Retry</sys:String>
+    <sys:String x:Key="FlyoutCounts">{0} active · {1} queued · {2} paused · {3} seeding</sys:String>
+    <sys:String x:Key="FlyoutDownloadRate">Download {0}</sys:String>
+    <sys:String x:Key="FlyoutUploadRate">Upload {0}</sys:String>
     <sys:String x:Key="FlyoutEmpty">No torrents</sys:String>
+    <sys:String x:Key="FlyoutTorrentList">Torrents</sys:String>
+    <sys:String x:Key="FlyoutFilters">Filter</sys:String>
+
+    <sys:String x:Key="FilterAll">All</sys:String>
+    <sys:String x:Key="FilterDownloading">Downloading</sys:String>
+    <sys:String x:Key="FilterSeeding">Seeding</sys:String>
+    <sys:String x:Key="FilterPaused">Paused</sys:String>
+
+    <sys:String x:Key="StatusUnknown">Unknown</sys:String>
+    <sys:String x:Key="StatusStopped">Paused</sys:String>
+    <sys:String x:Key="StatusQueuedToVerify">Queued to verify</sys:String>
+    <sys:String x:Key="StatusVerifying">Verifying</sys:String>
+    <sys:String x:Key="StatusQueuedToDownload">Queued</sys:String>
+    <sys:String x:Key="StatusDownloading">Downloading</sys:String>
+    <sys:String x:Key="StatusQueuedToSeed">Queued to seed</sys:String>
+    <sys:String x:Key="StatusSeeding">Seeding</sys:String>
+    <sys:String x:Key="TorrentDetail">{0} · {1:0.#} % · {2} of {3} · ETA {4}</sys:String>
+    <sys:String x:Key="TorrentRates">↓ {0}   ↑ {1}</sys:String>
     <sys:String x:Key="FlyoutConnection">Connection</sys:String>
     <sys:String x:Key="FlyoutAbout">About</sys:String>
 

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using Torray.Application;
 using Torray.Domain;
 using Forms = System.Windows.Forms;
 
@@ -13,9 +14,11 @@ public partial class App(
     ISettingsStore settingsStore,
     ISecretStore secretStore,
     ITransmissionRpcClientFactory rpcClientFactory,
-    ILogger<App> logger) : Application
+    TorrentRefreshService refresh,
+    ILogger<App> logger) : System.Windows.Application
 {
     private AppSettings _settings = new();
+    private FlyoutViewModel? _flyoutViewModel;
     private FlyoutWindow? _flyout;
     private Forms.NotifyIcon? _trayIcon;
     private bool _connectionDialogOpen;
@@ -27,9 +30,21 @@ public partial class App(
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         _settings = await LoadSettingsAsync();
-        _flyout = new FlyoutWindow(_settings.HideFlyoutOnDeactivate);
-        _flyout.SetServer(_settings.Connection?.Host);
+        var viewModel = new FlyoutViewModel(refresh);
+        _flyoutViewModel = viewModel;
+        refresh.Updated += snapshot => Dispatcher.InvokeAsync(() => viewModel.Apply(snapshot));
+        _flyout = new FlyoutWindow(viewModel, _settings.HideFlyoutOnDeactivate);
+        _flyout.IsVisibleChanged += (_, _) => refresh.SetVisible(_flyout.IsVisible);
         _trayIcon = CreateTrayIcon();
+
+        var connection = _settings.Connection;
+        ApplyConnection(connection, connection is null ? null : await LoadPasswordAsync(connection.Id));
+    }
+
+    private void ApplyConnection(ConnectionSettings? connection, string? password)
+    {
+        _flyoutViewModel!.ServerName = connection?.Host ?? Strings.Get("AppName");
+        refresh.SetClient(connection is null ? null : rpcClientFactory.Create(connection, password));
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -87,7 +102,7 @@ public partial class App(
             var settings = _settings with { Connection = connection };
             await settingsStore.SaveAsync(settings);
             _settings = settings;
-            _flyout?.SetServer(connection.Host);
+            ApplyConnection(connection, password);
             logger.LogInformation("Connection settings saved");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException)

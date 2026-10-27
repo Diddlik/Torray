@@ -2,6 +2,7 @@ using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using Torray.Application;
 using Torray.Domain;
 using Torray.Infrastructure;
 using Velopack;
@@ -48,6 +49,8 @@ internal static class Program
                 new JsonSettingsStore(Path.Combine(dataDirectory, "settings.json")));
             builder.Services.AddSingleton<ISecretStore>(new DpapiSecretStore(Path.Combine(dataDirectory, "secrets")));
             builder.Services.AddSingleton<ITransmissionRpcClientFactory, TransmissionRpcClientFactory>();
+            builder.Services.AddSingleton<TorrentRefreshService>();
+            builder.Services.AddHostedService(services => services.GetRequiredService<TorrentRefreshService>());
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();

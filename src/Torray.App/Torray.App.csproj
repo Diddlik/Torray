@@ -33,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Torray.Domain\Torray.Domain.csproj" />
     <ProjectReference Include="..\Torray.Infrastructure\Torray.Infrastructure.csproj" />
+    <ProjectReference Include="..\Torray.Application\Torray.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

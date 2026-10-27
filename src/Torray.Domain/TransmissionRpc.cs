@@ -3,6 +3,8 @@ namespace Torray.Domain;
 public interface ITransmissionRpcClient
 {
     Task<ServerInfo> GetSessionAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Torrent>> GetTorrentsAsync(CancellationToken cancellationToken = default);
 }
 
 public interface ITransmissionRpcClientFactory

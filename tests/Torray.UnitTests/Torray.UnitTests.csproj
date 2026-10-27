@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Torray.Infrastructure\Torray.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Torray.Application\Torray.Application.csproj" />
   </ItemGroup>
 
 </Project>

@@ -108,7 +108,7 @@ Design:
 
 - Purpose and scope: Torray, a Windows tray flyout that manages a remote Transmission daemon over RPC. `REQUIREMENTS.md` is the spec; implement its milestones (section 10) in order. The spec's working title "Transmission Flyout" is replaced by "Torray" everywhere.
 - License: MIT, copyright Diddlik. Repository: https://github.com/Diddlik/Torray.
-- Primary languages and runtimes: C# on .NET 10. `Torray.Domain` targets `net10.0`; everything else targets `net10.0-windows` (DPAPI, WPF).
+- Primary languages and runtimes: C# on .NET 10. `Torray.Domain` and `Torray.Application` target `net10.0`; everything else targets `net10.0-windows` (DPAPI, WPF).
 - Transmission RPC: own client in `Torray.Infrastructure` (no third-party RPC library), supporting Transmission 4.0+. It probes with the legacy protocol and switches to JSON-RPC 2.0 when `rpc_version_semver` is 6.0.0 or higher (Transmission 4.1+). Build request bodies with `JsonObject`, not reflection serialization. Verified against linuxserver/transmission 4.0.6 and 4.1.3.
 - Platform-specific constraints: Windows 11 x64 primary. No admin rights needed at runtime. App data under `%LOCALAPPDATA%\Torray\`.
 - GUI toolkit, update mechanism, and distribution: WPF with the built-in Fluent theme (`ThemeMode="System"`, experimental warning WPF0001 suppressed), CommunityToolkit.Mvvm, and the WinForms `NotifyIcon` for the tray. Velopack provides the installer and auto-update from GitHub Releases, plus a manual update check in settings. `VelopackApp.Build().Run()` must stay the first call in `Program.Main`. The update UI is OPEN until the settings UI exists.
@@ -120,7 +120,7 @@ Design:
 - Installer command: `./scripts/pack.ps1` (vpk as a local dotnet tool, output in `artifacts/releases`). It installs to `%LOCALAPPDATA%\TorrayApp`. That folder must never be the data folder `%LOCALAPPDATA%\Torray`, because uninstalling deletes the install folder. The vpk tool version must match the `Velopack` package version.
 - Required environment: Windows, .NET 10 SDK.
 - Important entry points: `src/Torray.App/Program.cs` (Velopack hook, single instance, host), `src/Torray.App/App.xaml.cs` (tray and flyout).
-- Architecture constraints: layered as in `REQUIREMENTS.md` section 7 with a `Torray.` prefix. Domain has no dependencies. Infrastructure implements Domain interfaces. App composes everything with `Microsoft.Extensions.Hosting`. Add `Torray.Application` only when the first application-level orchestration exists (polling, planned for milestone 3). User-facing strings live in `src/Torray.App/Resources/Strings.xaml`.
+- Architecture constraints: layered as in `REQUIREMENTS.md` section 7 with a `Torray.` prefix. Domain has no dependencies. Infrastructure implements Domain interfaces. App composes everything with `Microsoft.Extensions.Hosting`. `Torray.Application` holds orchestration (refresh loop) and display formatting; it targets `net10.0`. Inside `Torray.App`, write `System.Windows.Application` fully qualified, because the `Torray.Application` namespace shadows it. User-facing strings live in `src/Torray.App/Resources/Strings.xaml`.
 - Generated files: `bin/` and `obj/`. `src/Torray.App/Assets/Torray.ico` is rendered from `Torray.svg`; the command is in `Torray.App.csproj`.
 - Files or directories not to edit manually: none.
 

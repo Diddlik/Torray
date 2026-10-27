@@ -2,28 +2,123 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Torray.App"
+        x:Name="Root"
         Title="{StaticResource AppName}"
         Icon="Assets/Torray.ico"
         Width="420" Height="600"
         WindowStyle="None" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True"
         WindowStartupLocation="Manual">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible" />
+    </Window.Resources>
+
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="{StaticResource AppName}" FontSize="20" FontWeight="SemiBold" />
-            <TextBlock x:Name="ServerText" Margin="0,4,0,0" Opacity="0.7" />
+        <!-- Header: server, connection state, aggregate rates -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" Opacity="0.7" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                        Visibility="{Binding IsConnected, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" />
+                <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" Opacity="0.7" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Offline banner keeps the last known list visible below it -->
+        <Border Grid.Row="1" Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
+                BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
+                Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                        Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
+                <StackPanel>
+                    <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Filters and counts -->
+        <StackPanel Grid.Row="2" Margin="0,12,0,0"
+                    Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+            <ListBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" DisplayMemberPath="Label"
+                     AutomationProperties.Name="{StaticResource FlyoutFilters}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
+            <TextBlock Text="{Binding CountsText}" Margin="0,8,0,0" Opacity="0.7" />
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Text="{StaticResource FlyoutEmpty}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7" />
+        <!-- Torrent list -->
+        <ListBox Grid.Row="3" Margin="0,8,0,0" ItemsSource="{Binding Torrents}"
+                 AutomationProperties.Name="{StaticResource FlyoutTorrentList}"
+                 HorizontalContentAlignment="Stretch"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.IsVirtualizing="True"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 VirtualizingPanel.ScrollUnit="Pixel">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="local:TorrentItemViewModel">
+                    <StackPanel Margin="0,4">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                        <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,6" />
+                        <TextBlock Text="{Binding DetailText}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding DetailText}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Opacity" Value="0.7" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasError}" Value="True">
+                                            <Setter Property="Opacity" Value="1" />
+                                            <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding RatesText}" FontSize="12" Opacity="0.7" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
-        <DockPanel Grid.Row="2">
+        <TextBlock Grid.Row="3" Text="{StaticResource FlyoutEmpty}" Opacity="0.7"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}" />
+
+        <StackPanel Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{Binding IsNotConfigured, Converter={StaticResource Visible}}">
+            <TextBlock Text="{StaticResource FlyoutNotConfigured}" HorizontalAlignment="Center" Opacity="0.7" />
+            <Button Content="{StaticResource FlyoutSetUp}" Margin="0,12,0,0" HorizontalAlignment="Center"
+                    Style="{DynamicResource AccentButtonStyle}" Click="OnConnectionClick" />
+        </StackPanel>
+
+        <!-- Footer -->
+        <DockPanel Grid.Row="4" Margin="0,12,0,0">
             <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
             <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" />
             <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
