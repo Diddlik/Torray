@@ -63,6 +63,7 @@ Build a small, resource-efficient Windows application that lives in the system t
 | UX-02 | Drag activation / smart drop zone. | When a supported drag begins over the app's activation surface, a drop target is accessible; **do not** promise system-wide detection of arbitrary drags without a separately validated Windows shell mechanism. |
 | UX-03 | Clipboard magnet helper, opt-in. | Only scan on explicit invocation or user-configured shortcut; avoid background clipboard collection by default. |
 | UX-04 | Native Windows notifications for completion and errors. | Notification fires only for genuine state transitions; user can disable. |
+| UX-05 | Pin button in the flyout header that keeps the flyout open. | While pinned, focus loss does not hide the flyout; unpinning or Esc restores normal behavior; the state is visible on the button. |
 | TOR-06 | Add-dialog destination folder and start paused. | User choices map to server-supported RPC fields; invalid paths reported. |
 | TOR-07 | Torrent file selection and priority. | Fetch files; toggle wanted/unwanted and priority using supported RPC APIs. |
 | TOR-08 | Per-torrent speed limits and details (trackers, peers, ratio). | Values are correctly rendered, editable only when RPC supports them. |
@@ -236,7 +237,7 @@ Do the following in order; create a small, buildable increment and tests at each
 4. **Actions and upload:** start/stop, safe remove, explicit remove+delete confirmation, `.torrent` and magnet add.
 5. **Local watch folders:** file stability check, durable job queue, retries, archive behavior, settings UI.
 6. **Hardening:** disconnect handling, credential storage, performance tests, accessible UI, DPI, packaging.
-7. **P1:** hotkey, notifications, optional drop activation surface, torrent details/multi-server.
+7. **P1:** pin button (UX-05), hotkey, notifications, optional drop activation surface, torrent details/multi-server.
 8. **P2:** optional pinned mini-widget and automation enhancements.
 
 At the end of each milestone, supply: modified file summary, commands run, test results, remaining risks, next milestone. Do not claim tests pass unless executed.

@@ -109,6 +109,12 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [ObservableProperty]
     public partial bool NoticeIsError { get; set; }
 
+    [ObservableProperty]
+    public partial bool HasWatchIssues { get; set; }
+
+    [ObservableProperty]
+    public partial string WatchStatusText { get; set; } = string.Empty;
+
     public void Apply(TorrentSnapshot snapshot)
     {
         _state = snapshot.State;
@@ -136,6 +142,14 @@ public sealed partial class FlyoutViewModel : ObservableObject
         CountsText = Strings.Format(
             "FlyoutCounts", counts.Active, counts.Queued, counts.Paused, counts.Seeding, counts.Errors);
         UpdateEmptyState();
+    }
+
+    public void ApplyWatch(WatchSnapshot snapshot)
+    {
+        var failed = snapshot.Issues.Count(j => j.State == WatchJobState.Failed) + snapshot.MissingFolders.Count;
+        var waiting = snapshot.Issues.Count(j => j.State == WatchJobState.Pending);
+        HasWatchIssues = failed + waiting > 0;
+        WatchStatusText = Strings.Format("FlyoutWatchStatus", waiting, failed);
     }
 
     public async Task AddFilesAsync(IEnumerable<string> paths)

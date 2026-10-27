@@ -183,4 +183,6 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     private void OnAboutClick(object sender, RoutedEventArgs e) => App.ShowAbout();
 
     private void OnConnectionClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowConnection();
+
+    private void OnWatchFoldersClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowWatchFolders();
 }

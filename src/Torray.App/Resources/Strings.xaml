@@ -18,9 +18,28 @@
     <sys:String x:Key="FlyoutRetry">Retry</sys:String>
     <sys:String x:Key="FlyoutCounts">{0} active · {1} queued · {2} paused · {3} seeding · {4} errors</sys:String>
     <sys:String x:Key="FlyoutMagnetPlaceholder">Paste a magnet link</sys:String>
+    <sys:String x:Key="FlyoutAddHint">Paste a magnet link, or drop .torrent files or magnet links anywhere on this panel.</sys:String>
+    <sys:String x:Key="FlyoutWatchFolders">Watch folders</sys:String>
+    <sys:String x:Key="FlyoutWatchStatus">Watch folders: {0} waiting · {1} failed</sys:String>
+    <sys:String x:Key="FlyoutWatchDetails">Details</sys:String>
+
+    <sys:String x:Key="TrayWatchFolders">Watch folders…</sys:String>
+
+    <sys:String x:Key="WatchTitle">Watch folders</sys:String>
+    <sys:String x:Key="WatchIntro">While Torray is running, new .torrent files in these folders are uploaded to Transmission automatically.</sys:String>
+    <sys:String x:Key="WatchEnabled">Watch this folder</sys:String>
+    <sys:String x:Key="WatchMoveToArchive">After upload, move the file to the "Added" subfolder</sys:String>
+    <sys:String x:Key="WatchRemoveFolder">Remove folder</sys:String>
+    <sys:String x:Key="WatchAddFolder">Add folder…</sys:String>
+    <sys:String x:Key="WatchProblems">Problems</sys:String>
+    <sys:String x:Key="WatchRetry">Retry now</sys:String>
+    <sys:String x:Key="WatchFolderMissing">Folder not found or not accessible.</sys:String>
+    <sys:String x:Key="WatchWaitingForConnection">Waiting for a connection.</sys:String>
+    <sys:String x:Key="WatchJobPending">Will retry automatically (attempt {0}). {1}</sys:String>
+    <sys:String x:Key="WatchJobFailed">Not uploaded. {0} The file was kept.</sys:String>
+    <sys:String x:Key="WatchSaveFailed">The watch folders could not be saved. Check that %LOCALAPPDATA%\Torray is writable and try again.</sys:String>
     <sys:String x:Key="FlyoutAddMagnet">Add</sys:String>
     <sys:String x:Key="FlyoutOpenTorrent">Open .torrent…</sys:String>
-    <sys:String x:Key="FlyoutDropHint">Drop .torrent files or magnet links here</sys:String>
     <sys:String x:Key="FlyoutDropActive">Release to add</sys:String>
     <sys:String x:Key="TorrentFileFilter">Torrent files (*.torrent)|*.torrent</sys:String>
 

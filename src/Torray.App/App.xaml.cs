@@ -15,13 +15,14 @@ public partial class App(
     ISecretStore secretStore,
     ITransmissionRpcClientFactory rpcClientFactory,
     TorrentService refresh,
+    WatchFolderService watchFolders,
     ILogger<App> logger) : System.Windows.Application
 {
     private AppSettings _settings = new();
     private FlyoutViewModel? _flyoutViewModel;
     private FlyoutWindow? _flyout;
     private Forms.NotifyIcon? _trayIcon;
-    private bool _connectionDialogOpen;
+    private bool _settingsDialogOpen;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -33,6 +34,8 @@ public partial class App(
         var viewModel = new FlyoutViewModel(refresh);
         _flyoutViewModel = viewModel;
         refresh.Updated += snapshot => Dispatcher.InvokeAsync(() => viewModel.Apply(snapshot));
+        watchFolders.Updated += snapshot => Dispatcher.InvokeAsync(() => viewModel.ApplyWatch(snapshot));
+        watchFolders.Configure(_settings.WatchFolders);
         _flyout = new FlyoutWindow(viewModel, _settings.HideFlyoutOnDeactivate);
         _flyout.IsVisibleChanged += (_, _) => refresh.SetVisible(_flyout.IsVisible);
         _trayIcon = CreateTrayIcon();
@@ -64,12 +67,12 @@ public partial class App(
     public async void ShowConnection()
     {
         // The tray menu stays usable while a modal dialog runs, so guard against a second dialog.
-        if (_connectionDialogOpen)
+        if (_settingsDialogOpen)
         {
             return;
         }
 
-        _connectionDialogOpen = true;
+        _settingsDialogOpen = true;
         try
         {
             var existing = _settings.Connection;
@@ -82,7 +85,51 @@ public partial class App(
         }
         finally
         {
-            _connectionDialogOpen = false;
+            _settingsDialogOpen = false;
+        }
+    }
+
+    public async void ShowWatchFolders()
+    {
+        if (_settingsDialogOpen)
+        {
+            return;
+        }
+
+        _settingsDialogOpen = true;
+        WatchFoldersWindow? window = null;
+        var viewModel = new WatchFoldersViewModel(_settings.WatchFolders, watchFolders, () => window?.PickFolder());
+        void OnUpdated(WatchSnapshot snapshot) => Dispatcher.InvokeAsync(() => viewModel.ApplySnapshot(snapshot));
+        watchFolders.Updated += OnUpdated;
+        try
+        {
+            window = new WatchFoldersWindow(viewModel);
+            if (window.ShowDialog() == true && viewModel.Result is { } folders)
+            {
+                await SaveWatchFoldersAsync(folders);
+            }
+        }
+        finally
+        {
+            watchFolders.Updated -= OnUpdated;
+            _settingsDialogOpen = false;
+        }
+    }
+
+    private async Task SaveWatchFoldersAsync(IReadOnlyList<WatchFolder> folders)
+    {
+        try
+        {
+            var settings = _settings with { WatchFolders = folders };
+            await settingsStore.SaveAsync(settings);
+            _settings = settings;
+            watchFolders.Configure(folders);
+            logger.LogInformation("Watch folders saved ({Count})", folders.Count);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            logger.LogError(ex, "Watch folders could not be saved");
+            MessageBox.Show(Strings.Get("WatchSaveFailed"), Strings.Get("AppName"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -144,6 +191,7 @@ public partial class App(
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add(Strings.Get("TrayOpen"), null, (_, _) => _flyout?.ShowNearTray());
         menu.Items.Add(Strings.Get("TrayConnection"), null, (_, _) => ShowConnection());
+        menu.Items.Add(Strings.Get("TrayWatchFolders"), null, (_, _) => ShowWatchFolders());
         menu.Items.Add(Strings.Get("TrayAbout"), null, (_, _) => ShowAbout());
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(Strings.Get("TrayExit"), null, (_, _) => ExitApplication());

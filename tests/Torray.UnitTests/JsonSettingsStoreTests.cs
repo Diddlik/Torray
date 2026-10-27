@@ -32,12 +32,18 @@ public sealed class JsonSettingsStoreTests : IDisposable
     public async Task SaveAsync_then_LoadAsync_round_trips_and_leaves_no_temp_file()
     {
         var store = new JsonSettingsStore(SettingsPath);
-        var saved = new AppSettings { HideFlyoutOnDeactivate = false };
+        var saved = new AppSettings
+        {
+            HideFlyoutOnDeactivate = false,
+            WatchFolders = [new WatchFolder(@"C:\Torrents", Enabled: false, MoveToArchive: true)],
+        };
 
         await store.SaveAsync(saved, TestContext.Current.CancellationToken);
         var loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(saved, loaded);
+        // Records compare lists by reference, so compare the list contents separately.
+        Assert.Equal(saved with { WatchFolders = [] }, loaded with { WatchFolders = [] });
+        Assert.Equal(saved.WatchFolders, loaded.WatchFolders);
         Assert.False(File.Exists(SettingsPath + ".tmp"));
     }
 

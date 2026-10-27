@@ -51,6 +51,9 @@ internal static class Program
             builder.Services.AddSingleton<ITransmissionRpcClientFactory, TransmissionRpcClientFactory>();
             builder.Services.AddSingleton<TorrentService>();
             builder.Services.AddHostedService(services => services.GetRequiredService<TorrentService>());
+            builder.Services.AddSingleton<IWatchJobStore>(new JsonWatchJobStore(Path.Combine(dataDirectory, "watch-jobs.json")));
+            builder.Services.AddSingleton<WatchFolderService>();
+            builder.Services.AddHostedService(services => services.GetRequiredService<WatchFolderService>());
             builder.Services.AddSingleton<App>();
 
             using var host = builder.Build();

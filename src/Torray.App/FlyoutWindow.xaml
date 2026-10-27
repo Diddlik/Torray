@@ -65,7 +65,9 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="MagnetBox" Text="{Binding MagnetText, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="{StaticResource FlyoutMagnetPlaceholder}">
+                         AutomationProperties.Name="{StaticResource FlyoutMagnetPlaceholder}"
+                         AutomationProperties.HelpText="{StaticResource FlyoutAddHint}"
+                         ToolTip="{StaticResource FlyoutAddHint}">
                     <TextBox.InputBindings>
                         <KeyBinding Key="Enter" Command="{Binding AddMagnetCommand}" />
                     </TextBox.InputBindings>
@@ -108,19 +110,27 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <!-- Offline banner keeps the last known list visible below it -->
-            <Border Grid.Row="3" Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
-                    BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
-                    Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
-                            Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
-                    <StackPanel>
-                        <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
-                    </StackPanel>
+            <StackPanel Grid.Row="3">
+                <!-- Offline banner keeps the last known list visible below it -->
+                <Border Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
+                        BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
+                        Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
+                                Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
+                        <StackPanel>
+                            <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <DockPanel Margin="0,8,0,0" Visibility="{Binding HasWatchIssues, Converter={StaticResource Visible}}">
+                    <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchDetails}" Click="OnWatchFoldersClick" />
+                    <TextBlock Text="{Binding WatchStatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource SystemFillColorCautionBrush}" />
                 </DockPanel>
-            </Border>
+            </StackPanel>
 
             <!-- Filters and counts -->
             <StackPanel Grid.Row="4" Margin="0,12,0,0"
@@ -218,9 +228,9 @@
             <!-- Footer -->
             <DockPanel Grid.Row="6" Margin="0,12,0,0">
                 <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutAbout}" Click="OnAboutClick" Margin="8,0,0,0" />
-                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" />
-                <TextBlock Text="{StaticResource FlyoutDropHint}" VerticalAlignment="Center" Opacity="0.7"
-                           FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchFolders}" Click="OnWatchFoldersClick" />
+                <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
             </DockPanel>
         </Grid>
 
