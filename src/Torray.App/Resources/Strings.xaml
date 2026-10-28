@@ -13,20 +13,27 @@
     <sys:String x:Key="FlyoutConnecting">Connecting…</sys:String>
     <sys:String x:Key="FlyoutConnected">Connected</sys:String>
     <sys:String x:Key="FlyoutCannotConnect">Cannot connect</sys:String>
-    <sys:String x:Key="FlyoutLastRefresh">Last refresh: {0:T}</sys:String>
+    <sys:String x:Key="FlyoutCannotConnectTitle">Cannot connect to Transmission</sys:String>
+    <sys:String x:Key="FlyoutConnectionSettings">Connection settings</sys:String>
+    <sys:String x:Key="FlyoutDropHint">Drop .torrent files or magnet links here</sys:String>
+    <sys:String x:Key="FlyoutDropHintDetail">.torrent files and magnet links are added with the current add options.</sys:String>
+    <sys:String x:Key="FlyoutMenu">Connection and settings</sys:String>
+    <sys:String x:Key="FlyoutMenuConnection">Connection…</sys:String>
+    <sys:String x:Key="FlyoutMenuWatchFolders">Watch folders…</sys:String>
+    <sys:String x:Key="FlyoutMenuSettings">Settings…</sys:String>
+    <sys:String x:Key="FlyoutMenuAbout">About Torray</sys:String>
+    <sys:String x:Key="FlyoutDismiss">Dismiss</sys:String>
+    <sys:String x:Key="FlyoutLastRefresh">Last known state from {0:t} · actions paused</sys:String>
     <sys:String x:Key="FlyoutNeverRefreshed">No successful refresh yet</sys:String>
-    <sys:String x:Key="FlyoutRetry">Retry</sys:String>
-    <sys:String x:Key="FlyoutCounts">{0} active · {1} queued · {2} paused · {3} seeding · {4} errors</sys:String>
+    <sys:String x:Key="FlyoutRetry">Retry now</sys:String>
     <sys:String x:Key="FlyoutMagnetPlaceholder">Paste a magnet link</sys:String>
     <sys:String x:Key="FlyoutAddHint">Paste a magnet link, or drop .torrent files or magnet links anywhere on this panel.</sys:String>
-    <sys:String x:Key="FlyoutWatchFolders">Watch folders</sys:String>
     <sys:String x:Key="FlyoutWatchStatus">Watch folders: {0} waiting · {1} failed</sys:String>
     <sys:String x:Key="FlyoutWatchDetails">Details</sys:String>
 
     <sys:String x:Key="TrayWatchFolders">Watch folders…</sys:String>
     <sys:String x:Key="TraySettings">Settings…</sys:String>
 
-    <sys:String x:Key="FlyoutSettings">Settings</sys:String>
     <sys:String x:Key="FlyoutUpdateReady">Torray {0} is ready to install.</sys:String>
     <sys:String x:Key="FlyoutRestartToUpdate">Restart to update</sys:String>
 
@@ -58,12 +65,24 @@
     <sys:String x:Key="WatchSaveFailed">The watch folders could not be saved. Check that %LOCALAPPDATA%\Torray is writable and try again.</sys:String>
     <sys:String x:Key="FlyoutAddMagnet">Add</sys:String>
     <sys:String x:Key="FlyoutOpenTorrent">Open .torrent…</sys:String>
-    <sys:String x:Key="FlyoutDropActive">Release to add</sys:String>
+    <sys:String x:Key="FlyoutDropActive">Drop to add</sys:String>
     <sys:String x:Key="TorrentFileFilter">Torrent files (*.torrent)|*.torrent</sys:String>
 
     <sys:String x:Key="TorrentStart">Resume</sys:String>
     <sys:String x:Key="TorrentPause">Pause</sys:String>
-    <sys:String x:Key="TorrentRemove">Remove…</sys:String>
+    <sys:String x:Key="TorrentRemove">Remove from list</sys:String>
+    <sys:String x:Key="TorrentDeleteData">Remove and delete data…</sys:String>
+    <sys:String x:Key="TorrentCopyName">Copy name</sys:String>
+    <sys:String x:Key="TorrentMore">More actions</sys:String>
+    <sys:String x:Key="TorrentPercent">{0:0.0} %</sys:String>
+    <sys:String x:Key="TorrentSizeUnknown">Size unknown</sys:String>
+    <sys:String x:Key="TorrentGettingInfo">Getting file list from peers…</sys:String>
+    <sys:String x:Key="TorrentMetaDownloading">{0} of {1} · ↓ {2} · {3} left</sys:String>
+    <sys:String x:Key="TorrentMetaSeeding">{0} · ↑ {1}</sys:String>
+    <sys:String x:Key="TorrentMetaComplete">{0} · complete</sys:String>
+    <sys:String x:Key="TorrentMetaProgress">{0} of {1}</sys:String>
+    <sys:String x:Key="NoticeNameCopied">Name copied.</sys:String>
+    <sys:String x:Key="NoticeCopyFailed">Could not copy the name. Another app may be using the clipboard; try again.</sys:String>
 
     <sys:String x:Key="NoticeAdded">Added "{0}".</sys:String>
     <sys:String x:Key="NoticeDuplicate">"{0}" is already in the list.</sys:String>
@@ -76,16 +95,24 @@
     <sys:String x:Key="TorrentInputNotTorrentFile">The file is not a valid .torrent file.</sys:String>
     <sys:String x:Key="TorrentInputFileUnreadable">The .torrent file could not be read. Check that it is not open in another program.</sys:String>
 
-    <sys:String x:Key="RemoveTitle">Remove torrent</sys:String>
-    <sys:String x:Key="RemoveQuestion">Remove "{0}"?</sys:String>
-    <sys:String x:Key="RemoveKeepDataHint">Remove from list: Transmission forgets the torrent and its .torrent file. Downloaded files stay on the server.</sys:String>
-    <sys:String x:Key="RemoveDeleteDataHint">Delete with data: also deletes the downloaded files on the server. This cannot be undone.</sys:String>
-    <sys:String x:Key="RemoveKeepData">Remove from list</sys:String>
-    <sys:String x:Key="RemoveDeleteData">Delete with data</sys:String>
+    <sys:String x:Key="RemoveTitle">Delete downloaded data</sys:String>
+    <sys:String x:Key="RemoveQuestion">Delete downloaded data?</sys:String>
+    <sys:String x:Key="RemoveDeleteDataHint">This removes the torrent from Transmission and permanently deletes its files on the server. This cannot be undone.</sys:String>
+    <sys:String x:Key="RemoveKeepDataHint">To keep the files, use "Remove from list" instead.</sys:String>
+    <sys:String x:Key="RemoveDeleteData">Delete</sys:String>
     <sys:String x:Key="RemoveCancel">Cancel</sys:String>
-    <sys:String x:Key="FlyoutDownloadRate">Download {0}</sys:String>
-    <sys:String x:Key="FlyoutUploadRate">Upload {0}</sys:String>
-    <sys:String x:Key="FlyoutEmpty">No torrents</sys:String>
+    <sys:String x:Key="FlyoutDownloadRate">↓ {0}</sys:String>
+    <sys:String x:Key="FlyoutUploadRate">↑ {0}</sys:String>
+    <sys:String x:Key="FlyoutEmptyAll">No torrents yet</sys:String>
+    <sys:String x:Key="FlyoutEmptyHintAll">Paste a magnet link or drop a .torrent file.</sys:String>
+    <sys:String x:Key="FlyoutEmptyDownloading">Nothing downloading</sys:String>
+    <sys:String x:Key="FlyoutEmptyHintDownloading">Paused and finished torrents are in the other tabs.</sys:String>
+    <sys:String x:Key="FlyoutEmptySeeding">Nothing seeding</sys:String>
+    <sys:String x:Key="FlyoutEmptyHintSeeding">Finished torrents that are sharing show up here.</sys:String>
+    <sys:String x:Key="FlyoutEmptyPaused">Nothing paused</sys:String>
+    <sys:String x:Key="FlyoutEmptyHintPaused"></sys:String>
+    <sys:String x:Key="FlyoutEmptyErrors">No errors</sys:String>
+    <sys:String x:Key="FlyoutEmptyHintErrors">Everything is working.</sys:String>
     <sys:String x:Key="FlyoutTorrentList">Torrents</sys:String>
     <sys:String x:Key="FlyoutFilters">Filter</sys:String>
 
@@ -103,10 +130,7 @@
     <sys:String x:Key="StatusDownloading">Downloading</sys:String>
     <sys:String x:Key="StatusQueuedToSeed">Queued to seed</sys:String>
     <sys:String x:Key="StatusSeeding">Seeding</sys:String>
-    <sys:String x:Key="TorrentDetail">{0} · {1:0.#} % · {2} of {3} · ETA {4}</sys:String>
-    <sys:String x:Key="TorrentRates">↓ {0}   ↑ {1}</sys:String>
-    <sys:String x:Key="FlyoutConnection">Connection</sys:String>
-    <sys:String x:Key="FlyoutAbout">About</sys:String>
+    <sys:String x:Key="StatusError">Error</sys:String>
 
     <sys:String x:Key="ConnectionTitle">Transmission connection</sys:String>
     <sys:String x:Key="ConnectionScheme">_Protocol</sys:String>

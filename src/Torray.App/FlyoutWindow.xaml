@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Torray.App"
+        xmlns:domain="clr-namespace:Torray.Domain;assembly=Torray.Domain"
         Title="{StaticResource AppName}"
         Icon="Assets/Torray.ico"
         Width="420" Height="600"
@@ -11,46 +12,88 @@
         AllowDrop="True" DragEnter="OnDragOver" DragOver="OnDragOver" DragLeave="OnDragLeave" Drop="OnDrop">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
+        <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-        <Style x:Key="FooterIconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
-            <Setter Property="FontSize" Value="14" />
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+            <Setter Property="FontSize" Value="16" />
             <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="32" />
+            <Setter Property="Height" Value="36" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
         </Style>
 
         <Style x:Key="IconToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
-            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
-            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+            <Setter Property="FontSize" Value="16" />
             <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="32" />
+            <Setter Property="Height" Value="36" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
         </Style>
 
-        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+        <!-- Row buttons stay disabled while a command for that torrent is in flight. -->
+        <Style x:Key="RowButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="Width" Value="36" />
-            <Setter Property="Height" Value="32" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="4,0,0,0" />
-            <Setter Property="ToolTip" Value="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource Self}}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsBusy}" Value="True">
                     <Setter Property="IsEnabled" Value="False" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <Style x:Key="SecondaryText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        </Style>
+
+        <!-- Filter pills: the selected one is filled with the accent color. -->
+        <Style x:Key="Chip" TargetType="ListBoxItem">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Pill" Height="28" Padding="10,0" CornerRadius="14" BorderThickness="1"
+                                Background="Transparent" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Label}" FontSize="12" />
+                                <TextBlock x:Name="Count" Text="{Binding Count}" FontSize="12" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Pill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Pill" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter TargetName="Pill" Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                <Setter TargetName="Count" Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                <Setter TargetName="Count" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
-        <Grid Margin="16">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -59,30 +102,61 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Header: server, connection state, aggregate rates -->
-            <Grid Grid.Row="0">
+            <!-- Header: server, connection state, aggregate rates, pin, menu -->
+            <Grid Grid.Row="0" Margin="16,14,8,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel>
+                <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding ServerName}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                   MaxWidth="220" VerticalAlignment="Center" />
-                        <Button x:Name="ServerMenuButton" Style="{StaticResource FooterIconButton}" Content="&#xE70D;"
-                                FontSize="12" Width="28" Height="28" Margin="4,0,0,0" VerticalAlignment="Center"
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                            <Setter Property="Fill" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsNotConfigured}" Value="True">
+                                            <Setter Property="Fill" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding ServerName}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   MaxWidth="150" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ServerHost}" Style="{StaticResource SecondaryText}" Margin="8,0,0,0"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="100" VerticalAlignment="Center" />
+                        <Button x:Name="ServerMenuButton" Style="{StaticResource IconButton}" Content="&#xE70D;"
+                                FontSize="10" Width="24" Height="24" Margin="2,0,0,0" VerticalAlignment="Center"
                                 AutomationProperties.Name="{StaticResource FlyoutSwitchServer}" Click="OnServerMenuClick"
                                 Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding StatusText}" Margin="0,4,0,0" Opacity="0.7" />
+                    <TextBlock Text="{Binding StatusText}" Margin="16,2,0,0" TextTrimming="CharacterEllipsis"
+                               AutomationProperties.LiveSetting="Polite">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SecondaryText}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0"
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,4,0"
                             Visibility="{Binding IsConnected, Converter={StaticResource Visible}}">
-                    <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" />
-                    <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" Opacity="0.7" />
+                    <TextBlock Text="{Binding DownloadRate}" HorizontalAlignment="Right" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock Text="{Binding UploadRate}" HorizontalAlignment="Right" FontWeight="SemiBold" Margin="0,2,0,0"
+                               Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
                 </StackPanel>
-                <ToggleButton Grid.Column="2" VerticalAlignment="Top" Margin="8,0,0,0" IsChecked="{Binding IsPinned}">
+                <ToggleButton Grid.Column="2" IsChecked="{Binding IsPinned}">
                     <ToggleButton.Style>
                         <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
                             <Setter Property="Content" Value="&#xE718;" />
@@ -96,119 +170,119 @@
                         </Style>
                     </ToggleButton.Style>
                 </ToggleButton>
+                <Button x:Name="MenuButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xE713;"
+                        AutomationProperties.Name="{StaticResource FlyoutMenu}" Click="OnMenuClick" />
             </Grid>
 
-            <!-- Add: magnet paste field and file picker -->
-            <StackPanel Grid.Row="1" Margin="0,12,0,0" Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="MagnetBox" Text="{Binding MagnetText, UpdateSourceTrigger=PropertyChanged}"
-                         AutomationProperties.Name="{StaticResource FlyoutMagnetPlaceholder}"
-                         AutomationProperties.HelpText="{StaticResource FlyoutAddHint}"
-                         ToolTip="{StaticResource FlyoutAddHint}">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding AddMagnetCommand}" />
-                    </TextBox.InputBindings>
-                </TextBox>
-                <TextBlock Text="{StaticResource FlyoutMagnetPlaceholder}" IsHitTestVisible="False" Opacity="0.5"
-                           VerticalAlignment="Center" Margin="12,0,0,0">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Text, ElementName=MagnetBox}" Value="">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <Button Grid.Column="1" Content="{StaticResource FlyoutAddMagnet}" Margin="8,0,0,0"
-                        Style="{DynamicResource AccentButtonStyle}" Command="{Binding AddMagnetCommand}" />
-                <Button Grid.Column="2" Content="{StaticResource FlyoutOpenTorrent}" Margin="8,0,0,0"
-                        Command="{Binding OpenTorrentFilesCommand}" />
-                <ToggleButton Grid.Column="3" Style="{StaticResource IconToggle}" Content="&#xE712;" Margin="8,0,0,0"
-                              IsChecked="{Binding ShowAddOptions}" AutomationProperties.Name="{StaticResource FlyoutAddOptions}" />
-            </Grid>
-
-            <!-- Add options apply to magnets, picked files, and drops from this panel -->
-            <StackPanel Margin="0,8,0,0" Visibility="{Binding ShowAddOptions, Converter={StaticResource Visible}}">
-                <Label Content="{StaticResource FlyoutDownloadDir}" Target="{Binding ElementName=DownloadDirBox}" Padding="0,0,0,4" />
-                <TextBox x:Name="DownloadDirBox" Text="{Binding DownloadDir, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="{StaticResource FlyoutDownloadDirHint}"
-                         AutomationProperties.HelpText="{StaticResource FlyoutDownloadDirHint}" />
-                <CheckBox Content="{StaticResource FlyoutStartPaused}" IsChecked="{Binding StartPaused}" Margin="0,8,0,0" />
-            </StackPanel>
-            </StackPanel>
-
-            <!-- Outcome of the last action -->
-            <TextBlock Grid.Row="2" Text="{Binding NoticeText}" Margin="0,8,0,0" TextWrapping="Wrap"
-                       AutomationProperties.LiveSetting="Polite">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Opacity" Value="0.8" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding NoticeText}" Value="">
+            <!-- Add: magnet paste field, file picker, add options -->
+            <StackPanel Grid.Row="1" Margin="16,0" Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="MagnetBox" Text="{Binding MagnetText, UpdateSourceTrigger=PropertyChanged}" Padding="32,6,8,5"
+                             VerticalContentAlignment="Center"
+                             AutomationProperties.Name="{StaticResource FlyoutMagnetPlaceholder}"
+                             AutomationProperties.HelpText="{StaticResource FlyoutAddHint}"
+                             ToolTip="{StaticResource FlyoutAddHint}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding AddMagnetCommand}" />
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}" FontSize="14" IsHitTestVisible="False"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="11,0,0,0" />
+                    <TextBlock Text="{StaticResource FlyoutMagnetPlaceholder}" IsHitTestVisible="False"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" Margin="33,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding NoticeIsError}" Value="True">
-                                <Setter Property="Opacity" Value="1" />
-                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=MagnetBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Button Grid.Column="1" Content="{StaticResource FlyoutAddMagnet}" Margin="8,0,0,0" Height="36"
+                            Style="{DynamicResource AccentButtonStyle}" Command="{Binding AddMagnetCommand}" />
+                    <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE8E5;" Margin="8,0,0,0"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}" BorderThickness="1"
+                            AutomationProperties.Name="{StaticResource FlyoutOpenTorrent}" Command="{Binding OpenTorrentFilesCommand}" />
+                    <ToggleButton Grid.Column="3" Style="{StaticResource IconToggle}" Content="&#xE712;" Margin="8,0,0,0"
+                                  IsChecked="{Binding ShowAddOptions}" AutomationProperties.Name="{StaticResource FlyoutAddOptions}" />
+                </Grid>
 
-            <StackPanel Grid.Row="3">
+                <!-- Add options apply to magnets, picked files, and drops from this panel -->
+                <StackPanel Margin="0,8,0,0" Visibility="{Binding ShowAddOptions, Converter={StaticResource Visible}}">
+                    <Label Content="{StaticResource FlyoutDownloadDir}" Target="{Binding ElementName=DownloadDirBox}" Padding="0,0,0,4" />
+                    <TextBox x:Name="DownloadDirBox" Text="{Binding DownloadDir, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{StaticResource FlyoutDownloadDirHint}"
+                             AutomationProperties.HelpText="{StaticResource FlyoutDownloadDirHint}" />
+                    <CheckBox Content="{StaticResource FlyoutStartPaused}" IsChecked="{Binding StartPaused}" Margin="0,8,0,0" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Filters with counts -->
+            <ListBox Grid.Row="2" Margin="16,12,16,10" ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}"
+                     ItemContainerStyle="{StaticResource Chip}" Background="Transparent" BorderThickness="0" Padding="0"
+                     AutomationProperties.Name="{StaticResource FlyoutFilters}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                     Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
+
+            <StackPanel Grid.Row="3" Margin="12,0,12,8">
                 <!-- Offline banner keeps the last known list visible below it -->
-                <Border Margin="0,12,0,0" Padding="12" CornerRadius="4" BorderThickness="1"
-                        BorderBrush="{DynamicResource SystemFillColorCriticalBrush}"
-                        Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
+                <Border Style="{StaticResource Card}" Visibility="{Binding IsOffline, Converter={StaticResource Visible}}">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock Text="&#xE871;" FontFamily="{StaticResource IconFont}" FontSize="18" Margin="0,0,10,0"
+                                       Foreground="{DynamicResource SystemFillColorCautionBrush}" VerticalAlignment="Top" />
+                            <StackPanel>
+                                <TextBlock Text="{StaticResource FlyoutCannotConnectTitle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <WrapPanel Margin="0,10,0,0">
+                            <Button Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" Margin="0,0,8,0"
+                                    Style="{DynamicResource AccentButtonStyle}" />
+                            <Button Content="{StaticResource FlyoutConnectionSettings}" Click="OnConnectionClick" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,8,0,0" Padding="12,8"
+                        Visibility="{Binding IsUpdateReady, Converter={StaticResource Visible}}">
                     <DockPanel>
-                        <Button DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0"
-                                Content="{StaticResource FlyoutRetry}" Command="{Binding RetryCommand}" />
-                        <StackPanel>
-                            <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding LastRefreshText}" Margin="0,4,0,0" Opacity="0.7" />
-                        </StackPanel>
+                        <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutRestartToUpdate}" Margin="8,0,0,0"
+                                Style="{DynamicResource AccentButtonStyle}" Command="{Binding RestartNowCommand}" />
+                        <TextBlock Text="{Binding UpdateReadyText}" VerticalAlignment="Center" TextWrapping="Wrap" />
                     </DockPanel>
                 </Border>
 
-                <DockPanel Margin="0,8,0,0" Visibility="{Binding IsUpdateReady, Converter={StaticResource Visible}}">
-                    <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutRestartToUpdate}" Command="{Binding RestartNowCommand}" />
-                    <TextBlock Text="{Binding UpdateReadyText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                </DockPanel>
-
-                <DockPanel Margin="0,8,0,0" Visibility="{Binding HasWatchIssues, Converter={StaticResource Visible}}">
-                    <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchDetails}" Click="OnWatchFoldersClick" />
-                    <TextBlock Text="{Binding WatchStatusText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource SystemFillColorCautionBrush}" />
-                </DockPanel>
-            </StackPanel>
-
-            <!-- Filters and counts -->
-            <StackPanel Grid.Row="4" Margin="0,12,0,0"
-                        Visibility="{Binding IsConfigured, Converter={StaticResource Visible}}">
-                <ListBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" DisplayMemberPath="Label"
-                         AutomationProperties.Name="{StaticResource FlyoutFilters}"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                </ListBox>
-                <TextBlock Text="{Binding CountsText}" Margin="0,8,0,0" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                <Border Style="{StaticResource Card}" Margin="0,8,0,0" Padding="12,8"
+                        Visibility="{Binding HasWatchIssues, Converter={StaticResource Visible}}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchDetails}" Margin="8,0,0,0"
+                                Click="OnWatchFoldersClick" />
+                        <TextBlock Text="{Binding WatchStatusText}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                    </DockPanel>
+                </Border>
             </StackPanel>
 
             <!-- Torrent list -->
-            <ListBox Grid.Row="5" Margin="0,8,0,0" ItemsSource="{Binding Torrents}"
+            <ListBox Grid.Row="4" Margin="8,0,8,8" ItemsSource="{Binding Torrents}"
+                     Background="Transparent" BorderThickness="0" Padding="0"
                      PreviewKeyDown="OnTorrentListKeyDown"
                      AutomationProperties.Name="{StaticResource FlyoutTorrentList}"
                      HorizontalContentAlignment="Stretch"
@@ -216,98 +290,167 @@
                      VirtualizingPanel.IsVirtualizing="True"
                      VirtualizingPanel.VirtualizationMode="Recycling"
                      VirtualizingPanel.ScrollUnit="Pixel">
+                <ListBox.Style>
+                    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                                <Setter Property="Opacity" Value="0.55" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.Style>
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                         <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,4" />
+                        <EventSetter Event="MouseRightButtonUp" Handler="OnRowRightClick" />
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate DataType="local:TorrentItemViewModel">
-                        <Grid Margin="0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                        <!-- Tag carries the state color shared by the bar and the status label. -->
+                        <Border x:Name="Card" Padding="10,10,4,10" CornerRadius="6"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                Tag="{DynamicResource AccentTextFillColorPrimaryBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
-                                <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,6" />
-                                <TextBlock Text="{Binding DetailText}" FontSize="12" TextTrimming="CharacterEllipsis"
-                                           ToolTip="{Binding DetailText}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Opacity" Value="0.7" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasError}" Value="True">
-                                                    <Setter Property="Opacity" Value="1" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Text="{Binding RatesText}" FontSize="12" Opacity="0.7" />
-                            </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                    <DockPanel Margin="0,6,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding PercentText}" Style="{StaticResource SecondaryText}"
+                                                   MinWidth="44" TextAlignment="Right" Margin="8,0,0,0" />
+                                        <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" VerticalAlignment="Center"
+                                                     Foreground="{Binding Tag, ElementName=Card}" />
+                                    </DockPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{Binding Tag, ElementName=Card}" />
+                                        <TextBlock Text=" · " Style="{StaticResource SecondaryText}" />
+                                        <TextBlock Text="{Binding MetaText}" Style="{StaticResource SecondaryText}"
+                                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding MetaText}" />
+                                    </StackPanel>
+                                    <DockPanel Margin="0,4,0,0" Visibility="{Binding HasError, Converter={StaticResource Visible}}"
+                                               TextElement.Foreground="{DynamicResource SystemFillColorCriticalBrush}">
+                                        <TextBlock Text="&#xE783;" FontFamily="{StaticResource IconFont}" FontSize="12" Margin="0,2,6,0"
+                                                   VerticalAlignment="Top" />
+                                        <TextBlock Text="{Binding ErrorMessage}" FontSize="12" TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </StackPanel>
 
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                                <Button Style="{StaticResource IconButton}" Content="&#xE946;"
-                                        AutomationProperties.Name="{StaticResource TorrentDetails}"
-                                        CommandParameter="{Binding}"
-                                        Command="{Binding DataContext.ShowDetailsCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                                <Button CommandParameter="{Binding}"
-                                        Command="{Binding DataContext.ToggleStartCommand, RelativeSource={RelativeSource AncestorType=ListBox}}">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
-                                            <Setter Property="Content" Value="&#xE769;" />
-                                            <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentPause}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsStopped}" Value="True">
-                                                    <Setter Property="Content" Value="&#xE768;" />
-                                                    <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentStart}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                                <Button Style="{StaticResource IconButton}" Content="&#xE74D;"
-                                        AutomationProperties.Name="{StaticResource TorrentRemove}"
-                                        CommandParameter="{Binding}"
-                                        Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
-                            </StackPanel>
-                        </Grid>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                    <Button CommandParameter="{Binding}"
+                                            Command="{Binding DataContext.ToggleStartCommand, RelativeSource={RelativeSource AncestorType=ListBox}}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource RowButton}">
+                                                <Setter Property="Content" Value="&#xE769;" />
+                                                <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentPause}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsStopped}" Value="True">
+                                                        <Setter Property="Content" Value="&#xE768;" />
+                                                        <Setter Property="AutomationProperties.Name" Value="{StaticResource TorrentStart}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Style="{StaticResource RowButton}" Content="&#xE712;" Click="OnMoreClick"
+                                            AutomationProperties.Name="{StaticResource TorrentMore}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TorrentStatus.Seeding}">
+                                <Setter TargetName="Card" Property="Tag" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TorrentStatus.QueuedToSeed}">
+                                <Setter TargetName="Card" Property="Tag" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="{x:Static domain:TorrentStatus.Stopped}">
+                                <Setter TargetName="Card" Property="Tag" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                                <Setter TargetName="Card" Property="Tag" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <TextBlock Grid.Row="5" Text="{StaticResource FlyoutEmpty}" Opacity="0.7"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}" />
+            <StackPanel Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,40"
+                        Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding EmptyTitle}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding EmptyHint}" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
 
-            <StackPanel Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <StackPanel Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Center"
                         Visibility="{Binding IsNotConfigured, Converter={StaticResource Visible}}">
-                <TextBlock Text="{StaticResource FlyoutNotConfigured}" HorizontalAlignment="Center" Opacity="0.7" />
+                <TextBlock Text="{StaticResource FlyoutNotConfigured}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
                 <Button Content="{StaticResource FlyoutSetUp}" Margin="0,12,0,0" HorizontalAlignment="Center"
                         Style="{DynamicResource AccentButtonStyle}" Click="OnConnectionClick" />
             </StackPanel>
 
-            <!-- Footer -->
-            <DockPanel Grid.Row="6" Margin="0,12,0,0">
-                <Button DockPanel.Dock="Right" Style="{StaticResource FooterIconButton}" Content="&#xE946;"
-                        AutomationProperties.Name="{StaticResource FlyoutAbout}" Click="OnAboutClick" />
-                <Button DockPanel.Dock="Right" Style="{StaticResource FooterIconButton}" Content="&#xE713;"
-                        AutomationProperties.Name="{StaticResource FlyoutSettings}" Click="OnSettingsClick" />
-                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutConnection}" Click="OnConnectionClick" Margin="8,0,0,0" />
-                <Button DockPanel.Dock="Right" Content="{StaticResource FlyoutWatchFolders}" Click="OnWatchFoldersClick" />
-                <TextBlock Text="{x:Static local:AppInfo.Version}" VerticalAlignment="Center" Opacity="0.7" />
-            </DockPanel>
+            <!-- Footer: drop hint, or the age of the shown data while offline -->
+            <Border Grid.Row="5" MinHeight="40" Padding="16,0" BorderThickness="0,1,0,0"
+                    BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="14" Margin="0,0,8,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding FooterText}" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
         </Grid>
 
+        <!-- Outcome of the last action; errors stay until dismissed -->
+        <Border VerticalAlignment="Bottom" Margin="12,0,12,52" Padding="12,4,4,4" CornerRadius="6"
+                AutomationProperties.LiveSetting="Polite">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding NoticeText}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding NoticeIsError}" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            <Setter Property="TextElement.Foreground" Value="White" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE711;" FontSize="12"
+                        Width="28" Height="28" Margin="8,0,0,0" VerticalAlignment="Top"
+                        Foreground="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}"
+                        AutomationProperties.Name="{StaticResource FlyoutDismiss}" Command="{Binding DismissNoticeCommand}" />
+                <TextBlock Text="{Binding NoticeText}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,4" />
+            </DockPanel>
+        </Border>
+
         <!-- Visible drop state while a supported item is dragged over the flyout -->
-        <Border x:Name="DropOverlay" Visibility="Collapsed" Margin="8" CornerRadius="8" BorderThickness="2"
+        <Border x:Name="DropOverlay" Visibility="Collapsed" Margin="8" CornerRadius="10" BorderThickness="2"
                 BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
                 Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" IsHitTestVisible="False">
-            <TextBlock Text="{StaticResource FlyoutDropActive}" FontSize="20" FontWeight="SemiBold"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <StackPanel VerticalAlignment="Center" Margin="24">
+                <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center"
+                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource IconFont}" FontSize="28"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="{StaticResource FlyoutDropActive}" FontSize="17" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="0,12,0,0" />
+                <TextBlock Text="{StaticResource FlyoutDropHintDetail}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
         </Border>
     </Grid>
 </Window>

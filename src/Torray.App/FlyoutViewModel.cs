@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Torray.Application;
@@ -8,19 +9,20 @@ using Torray.Domain;
 
 namespace Torray.App;
 
-public sealed record FilterOption(TorrentFilter Filter, string Label);
-
-public enum RemoveChoice
+public sealed partial class FilterOption(TorrentFilter filter, string label) : ObservableObject
 {
-    Cancel,
-    KeepData,
-    DeleteData,
+    public TorrentFilter Filter { get; } = filter;
+
+    public string Label { get; } = label;
+
+    [ObservableProperty]
+    public partial int Count { get; set; }
 }
 
 // Implemented by the view so the view model stays free of window handling.
 public interface IFlyoutDialogs
 {
-    RemoveChoice ConfirmRemove(string torrentName);
+    bool ConfirmDeleteData(string torrentName, string size);
 
     IReadOnlyList<string> PickTorrentFiles();
 
@@ -29,9 +31,12 @@ public interface IFlyoutDialogs
 
 public sealed partial class FlyoutViewModel : ObservableObject
 {
+    private static readonly TimeSpan NoticeDuration = TimeSpan.FromSeconds(5);
+
     private readonly TorrentService _service;
     private readonly ObservableCollection<TorrentItemViewModel> _torrents = [];
     private readonly Dictionary<int, TorrentItemViewModel> _torrentsById = [];
+    private readonly DispatcherTimer _noticeTimer;
     private ConnectionState _state = ConnectionState.NotConfigured;
 
     public FlyoutViewModel(TorrentService service)
@@ -49,6 +54,9 @@ public sealed partial class FlyoutViewModel : ObservableObject
         Torrents.LiveFilteringProperties.Add(nameof(TorrentItemViewModel.HasError));
         Torrents.SortDescriptions.Add(new SortDescription(nameof(TorrentItemViewModel.QueuePosition), ListSortDirection.Ascending));
         Torrents.LiveSortingProperties.Add(nameof(TorrentItemViewModel.QueuePosition));
+
+        _noticeTimer = new DispatcherTimer { Interval = NoticeDuration };
+        _noticeTimer.Tick += (_, _) => DismissNotice();
 
         SelectedFilter = Filters[0];
         Torrents.Filter = item => item is TorrentItemViewModel torrent
@@ -85,6 +93,10 @@ public sealed partial class FlyoutViewModel : ObservableObject
     [ObservableProperty]
     public partial string ServerName { get; set; } = string.Empty;
 
+    // Shown next to the name only when the profile has a name, so the host is never repeated.
+    [ObservableProperty]
+    public partial string ServerHost { get; set; } = string.Empty;
+
     [ObservableProperty]
     public partial string StatusText { get; set; } = string.Empty;
 
@@ -107,16 +119,19 @@ public sealed partial class FlyoutViewModel : ObservableObject
     public partial string ErrorText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string LastRefreshText { get; set; } = string.Empty;
+    public partial string FooterText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EmptyTitle { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EmptyHint { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string DownloadRate { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string UploadRate { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string CountsText { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string MagnetText { get; set; } = string.Empty;
@@ -165,15 +180,19 @@ public sealed partial class FlyoutViewModel : ObservableObject
             _ => "FlyoutCannotConnect",
         });
         ErrorText = snapshot.Error is { } error ? Strings.Format("RpcError" + error, string.Empty) : string.Empty;
-        LastRefreshText = snapshot.LastSuccess is { } time
-            ? Strings.Format("FlyoutLastRefresh", time)
-            : Strings.Get("FlyoutNeverRefreshed");
+        FooterText = !IsOffline
+            ? Strings.Get("FlyoutDropHint")
+            : snapshot.LastSuccess is { } time
+                ? Strings.Format("FlyoutLastRefresh", time)
+                : Strings.Get("FlyoutNeverRefreshed");
 
         DownloadRate = Strings.Format("FlyoutDownloadRate", DisplayFormat.Rate(snapshot.Torrents.Sum(t => t.DownloadRate)));
         UploadRate = Strings.Format("FlyoutUploadRate", DisplayFormat.Rate(snapshot.Torrents.Sum(t => t.UploadRate)));
-        var counts = TorrentCounts.From(snapshot.Torrents);
-        CountsText = Strings.Format(
-            "FlyoutCounts", counts.Active, counts.Queued, counts.Paused, counts.Seeding, counts.Errors);
+        foreach (var option in Filters)
+        {
+            option.Count = snapshot.Torrents.Count(t => option.Filter.Matches(t.Status, t.ErrorMessage is not null));
+        }
+
         UpdateEmptyState();
     }
 
@@ -223,25 +242,33 @@ public sealed partial class FlyoutViewModel : ObservableObject
     private void ShowDetails(TorrentItemViewModel item) =>
         Dialogs?.ShowDetails(new TorrentDetailsViewModel(item.Name, ct => _service.GetDetailsAsync(item.Id, ct)));
 
+    // Removing keeps the downloaded files, so it needs no confirmation; deleting them always does.
     [RelayCommand(AllowConcurrentExecutions = true)]
-    private Task RemoveAsync(TorrentItemViewModel item)
-    {
-        var choice = Dialogs?.ConfirmRemove(item.Name) ?? RemoveChoice.Cancel;
-        if (choice == RemoveChoice.Cancel)
-        {
-            return Task.CompletedTask;
-        }
+    private Task RemoveAsync(TorrentItemViewModel item) => RemoveAsync(item, deleteData: false);
 
-        var deleteData = choice == RemoveChoice.DeleteData;
-        return RunAsync(item, async () =>
-        {
-            await _service.RemoveAsync(item.Id, deleteData);
-            SetNotice(Strings.Format(deleteData ? "NoticeRemovedWithData" : "NoticeRemoved", item.Name), isError: false);
-        });
+    [RelayCommand(AllowConcurrentExecutions = true)]
+    private Task DeleteWithDataAsync(TorrentItemViewModel item) =>
+        Dialogs?.ConfirmDeleteData(item.Name, item.SizeText) == true
+            ? RemoveAsync(item, deleteData: true)
+            : Task.CompletedTask;
+
+    [RelayCommand]
+    private void DismissNotice()
+    {
+        _noticeTimer.Stop();
+        NoticeText = string.Empty;
     }
+
+    private Task RemoveAsync(TorrentItemViewModel item, bool deleteData) => RunAsync(item, async () =>
+    {
+        await _service.RemoveAsync(item.Id, deleteData);
+        SetNotice(Strings.Format(deleteData ? "NoticeRemovedWithData" : "NoticeRemoved", item.Name), isError: false);
+    });
 
     partial void OnSelectedFilterChanged(FilterOption value)
     {
+        EmptyTitle = Strings.Get("FlyoutEmpty" + value.Filter);
+        EmptyHint = Strings.Get("FlyoutEmptyHint" + value.Filter);
         Torrents.Refresh();
         UpdateEmptyState();
     }
@@ -285,10 +312,16 @@ public sealed partial class FlyoutViewModel : ObservableObject
     private void ReportAdded(AddedTorrent added) =>
         SetNotice(Strings.Format(added.IsDuplicate ? "NoticeDuplicate" : "NoticeAdded", added.Name), isError: false);
 
+    // Errors stay until dismissed so they can be read at any pace; confirmations fade on their own.
     public void SetNotice(string text, bool isError)
     {
         NoticeText = text;
         NoticeIsError = isError;
+        _noticeTimer.Stop();
+        if (!isError)
+        {
+            _noticeTimer.Start();
+        }
     }
 
     private void MergeTorrents(IReadOnlyList<Torrent> torrents)

@@ -3,22 +3,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{StaticResource RemoveTitle}"
         Icon="Assets/Torray.ico"
-        Width="440" SizeToContent="Height" ResizeMode="NoResize"
+        Width="400" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        FocusManager.FocusedElement="{Binding ElementName=KeepDataButton}">
-    <StackPanel Margin="24">
-        <TextBlock x:Name="QuestionText" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="{StaticResource RemoveKeepDataHint}" Margin="0,12,0,0" TextWrapping="Wrap" />
-        <TextBlock Text="{StaticResource RemoveDeleteDataHint}" Margin="0,8,0,0" TextWrapping="Wrap"
-                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
-
+        FocusManager.FocusedElement="{Binding ElementName=CancelButton}">
+    <DockPanel>
         <!-- The safe choice is the default; deleting data needs a deliberate click. -->
-        <DockPanel Margin="0,24,0,0" LastChildFill="False">
-            <Button x:Name="DeleteDataButton" DockPanel.Dock="Left" Content="{StaticResource RemoveDeleteData}"
-                    Foreground="{DynamicResource SystemFillColorCriticalBrush}" Click="OnDeleteData" />
-            <Button DockPanel.Dock="Right" Content="{StaticResource RemoveCancel}" IsCancel="True" MinWidth="80" Margin="8,0,0,0" />
-            <Button x:Name="KeepDataButton" DockPanel.Dock="Right" Content="{StaticResource RemoveKeepData}" IsDefault="True"
-                    Style="{DynamicResource AccentButtonStyle}" Click="OnKeepData" />
-        </DockPanel>
-    </StackPanel>
+        <Grid DockPanel.Dock="Bottom" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+            <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" />
+            <UniformGrid Columns="2" Margin="20,16">
+                <Button Content="{StaticResource RemoveDeleteData}" Margin="0,0,4,0" HorizontalAlignment="Stretch"
+                        Background="{DynamicResource SystemFillColorCriticalBrush}" Foreground="White" Click="OnDeleteData" />
+                <Button x:Name="CancelButton" Content="{StaticResource RemoveCancel}" Margin="4,0,0,0" HorizontalAlignment="Stretch"
+                        IsCancel="True" IsDefault="True" />
+            </UniformGrid>
+        </Grid>
+
+        <StackPanel Margin="20">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}">
+                    <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"
+                               Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Text="{StaticResource RemoveQuestion}" FontSize="18" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="12,0,0,0" />
+            </StackPanel>
+            <TextBlock Text="{StaticResource RemoveDeleteDataHint}" Margin="0,12,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Border Margin="0,12,0,0" Padding="12,8" CornerRadius="6" Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                <StackPanel>
+                    <TextBlock x:Name="NameText" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="SizeText" FontSize="12" Margin="0,2,0,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+            <TextBlock Text="{StaticResource RemoveKeepDataHint}" Margin="0,12,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </DockPanel>
 </Window>

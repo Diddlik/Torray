@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using Forms = System.Windows.Forms;
@@ -26,6 +27,7 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
         viewModel.Dialogs = this;
         DataContext = viewModel;
         HideOnDeactivate = hideOnDeactivate;
+        SourceInitialized += (_, _) => RoundCorners();
     }
 
     public bool HideOnDeactivate { get; set; }
@@ -33,10 +35,10 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
     // Connection changes wait while a flyout dialog is open, so a pending remove cannot hit a different server.
     public bool IsDialogOpen => _dialogOpen;
 
-    public RemoveChoice ConfirmRemove(string torrentName)
+    public bool ConfirmDeleteData(string torrentName, string size)
     {
-        var dialog = new RemoveTorrentWindow(torrentName) { Owner = this };
-        return ShowOwnedDialog(() => dialog.ShowDialog()) == true ? dialog.Choice : RemoveChoice.Cancel;
+        var dialog = new RemoveTorrentWindow(torrentName, size) { Owner = this };
+        return ShowOwnedDialog(() => dialog.ShowDialog()) == true;
     }
 
     public IReadOnlyList<string> PickTorrentFiles()
@@ -198,10 +200,23 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
         Native.SetWindowPos(handle, 0, x, y, width, height, Native.NoZOrder | Native.NoActivate);
     }
 
+    // A borderless window gets square corners by default; Windows 11 rounds them on request like other flyouts.
+    private void RoundCorners()
+    {
+        var preference = Native.CornerRound;
+        _ = Native.DwmSetWindowAttribute(
+            new WindowInteropHelper(this).Handle, Native.WindowCornerPreference, ref preference, sizeof(int));
+    }
+
     private static class Native
     {
         public const uint NoZOrder = 0x0004;
         public const uint NoActivate = 0x0010;
+        public const int WindowCornerPreference = 33;
+        public const int CornerRound = 2;
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
 
         public record struct Point(int X, int Y);
 
@@ -224,10 +239,88 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
 
     private void OnSettingsClick(object sender, RoutedEventArgs e) => ((App)System.Windows.Application.Current).ShowSettings();
 
+    private void OnMenuClick(object sender, RoutedEventArgs e) => OpenMenu(
+        MenuButton,
+        MenuItem("FlyoutMenuConnection", (_, _) => OnConnectionClick(this, e)),
+        MenuItem("FlyoutMenuWatchFolders", OnWatchFoldersClick),
+        MenuItem("FlyoutMenuSettings", OnSettingsClick),
+        new Separator(),
+        MenuItem("FlyoutMenuAbout", OnAboutClick));
+
+    private void OnMoreClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: TorrentItemViewModel item } button)
+        {
+            OpenRowMenu(button, item);
+        }
+    }
+
+    private void OnRowRightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem { DataContext: TorrentItemViewModel item } row)
+        {
+            OpenRowMenu(row, item, PlacementMode.MousePoint);
+            e.Handled = true;
+        }
+    }
+
+    // Removing keeps the files and sits apart from the destructive delete, which always asks first.
+    private void OpenRowMenu(FrameworkElement target, TorrentItemViewModel item, PlacementMode placement = PlacementMode.Bottom)
+    {
+        var delete = MenuItem("TorrentDeleteData", (_, _) => _viewModel.DeleteWithDataCommand.Execute(item));
+        delete.Foreground = (System.Windows.Media.Brush)FindResource("SystemFillColorCriticalBrush");
+        OpenMenu(
+            target,
+            placement,
+            MenuItem("TorrentDetails", (_, _) => _viewModel.ShowDetailsCommand.Execute(item)),
+            MenuItem("TorrentCopyName", (_, _) => CopyName(item)),
+            new Separator(),
+            MenuItem("TorrentRemove", (_, _) => _viewModel.RemoveCommand.Execute(item)),
+            delete);
+    }
+
+    private void CopyName(TorrentItemViewModel item)
+    {
+        try
+        {
+            Clipboard.SetText(item.Name);
+            _viewModel.SetNotice(Strings.Get("NoticeNameCopied"), isError: false);
+        }
+        catch (COMException)
+        {
+            _viewModel.SetNotice(Strings.Get("NoticeCopyFailed"), isError: true);
+        }
+    }
+
+    private static MenuItem MenuItem(string headerKey, RoutedEventHandler click)
+    {
+        var item = new MenuItem { Header = Strings.Get(headerKey) };
+        item.Click += click;
+        return item;
+    }
+
+    private void OpenMenu(FrameworkElement target, params Control[] items) =>
+        OpenMenu(target, PlacementMode.Bottom, items);
+
+    private void OpenMenu(FrameworkElement target, PlacementMode placement, params Control[] items)
+    {
+        var menu = NewMenu(target, placement);
+        foreach (var item in items)
+        {
+            menu.Items.Add(item);
+        }
+
+        menu.IsOpen = true;
+    }
+
+    // A context menu inherits the font of its target; icon buttons would turn the menu text into glyphs.
+    private ContextMenu NewMenu(FrameworkElement target, PlacementMode placement) =>
+        new() { PlacementTarget = target, Placement = placement, FontFamily = FontFamily };
+
     private void OnServerMenuClick(object sender, RoutedEventArgs e)
     {
         var app = (App)System.Windows.Application.Current;
-        var menu = new ContextMenu { PlacementTarget = ServerMenuButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        var menu = NewMenu(ServerMenuButton, PlacementMode.Bottom);
         foreach (var (connection, isActive) in app.Servers)
         {
             var item = new MenuItem { Header = connection.GetDisplayName(), IsCheckable = true, IsChecked = isActive };
@@ -242,17 +335,26 @@ public partial class FlyoutWindow : Window, IFlyoutDialogs
         menu.IsOpen = true;
     }
 
-    // Row actions without a mouse: Space or Enter pauses/resumes, Delete removes (still asking first).
+    // Row actions without a mouse: Space or Enter pauses/resumes, Delete removes and keeps the files,
+    // Shift+Delete deletes the files after confirmation, the menu key opens the row menu.
     private void OnTorrentListKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.OriginalSource is not ListBoxItem { DataContext: TorrentItemViewModel item })
+        if (e.OriginalSource is not ListBoxItem { DataContext: TorrentItemViewModel item } row)
         {
+            return;
+        }
+
+        if (e.Key == Key.Apps)
+        {
+            OpenRowMenu(row, item);
+            e.Handled = true;
             return;
         }
 
         ICommand? command = e.Key switch
         {
             Key.Space or Key.Enter => _viewModel.ToggleStartCommand,
+            Key.Delete when Keyboard.Modifiers == ModifierKeys.Shift => _viewModel.DeleteWithDataCommand,
             Key.Delete => _viewModel.RemoveCommand,
             _ => null,
         };

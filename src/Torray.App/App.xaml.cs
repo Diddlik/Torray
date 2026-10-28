@@ -80,6 +80,7 @@ public partial class App(
     private void ApplyConnection(ConnectionSettings? connection, string? password)
     {
         _flyoutViewModel!.ServerName = connection?.GetDisplayName() ?? Strings.Get("AppName");
+        _flyoutViewModel.ServerHost = string.IsNullOrWhiteSpace(connection?.Name) ? string.Empty : connection.Host;
         refresh.SetClient(connection is null ? null : rpcClientFactory.Create(connection, password));
     }
 
