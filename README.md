@@ -1,29 +1,34 @@
 # Torray
 
-A Windows tray flyout for managing a remote [Transmission](https://transmissionbt.com/) daemon over RPC.
-See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
+A Windows 11 tray flyout for a remote [Transmission](https://transmissionbt.com/) daemon.
+Check progress, add torrents, and pause or remove them without opening a web UI.
 
-Status: milestone 7 (usability). The flyout shows the torrent list with status, progress, rates, ETA, filters (including errors), and aggregate speeds.
-It refreshes every 2 s while open and every 20 s while hidden, and backs off up to 60 s while the server is unreachable.
+![Torray flyout in light and dark mode](docs/images/hero.png)
 
-- Add torrents: paste a magnet link, use **Open .torrent…**, or drop `.torrent` files or magnet links onto the flyout.
-  The **⋯** button next to them sets a download folder on the server and whether to add paused.
-- Several servers: add them under **Servers → Add server…** in the tray menu or the arrow next to the server name,
-  and switch between them there. Each server keeps its own password. Watch folders upload to the active server.
-- Pin (top right) keeps the panel open while you work in other windows; Esc or hiding the panel unpins it.
-- `Ctrl+Alt+T` shows or hides the panel from anywhere (change or turn off in Settings).
-- Windows notifications when a download finishes or a torrent reports an error (can be turned off in Settings).
-- Details (ⓘ on a row): location, size, ratio, dates, trackers, and connected peers.
-- Pause or resume each torrent from its row.
-- Watch folders (tray menu or flyout): while Torray runs, new `.torrent` files are uploaded once they are fully written.
-  Optionally the file moves to an `Added` subfolder after the server confirmed it. Uploads that fail because the server
-  is unreachable are retried with backoff (up to 10 attempts, immediately when the connection returns); invalid files are
-  reported and kept. Upload state survives restarts (`%LOCALAPPDATA%\Torray\watch-jobs.json`).
-- Settings (gear icon or tray menu): start with Windows, hide the panel on focus loss, notifications, keyboard shortcut,
-  automatic update checks.
-- Updates come from GitHub Releases. A downloaded update shows **Restart to update** in the flyout; if you ignore it, it installs when Torray exits.
-- Keyboard: Esc hides the panel; in the list, Space or Enter pauses/resumes and Delete removes the selected torrent.
-- Remove asks first: **Remove from list** keeps the downloaded files and is the default; **Delete with data** also deletes the files on the server.
+## Install
+
+Download `TorrayApp-win-Setup.exe` from the [latest release](https://github.com/Diddlik/Torray/releases/latest) and run it.
+No admin rights are needed. Torray updates itself from GitHub Releases.
+The installer is not code-signed yet, so Windows SmartScreen shows a warning.
+
+On first start, click the tray icon and choose **Set up connection**.
+
+## Features
+
+- **Live list:** status, progress, rates, and time left for every torrent, with filters for downloading, seeding, paused,
+  and errors. Refreshes every 2 s while open and every 20 s while hidden.
+- **Add torrents:** paste a magnet link, pick `.torrent` files, or drop either onto the panel.
+  The options button sets a download folder on the server and whether to add paused.
+- **Row actions:** pause or resume with one click. The **⋯** menu has details (trackers, peers, ratio), copy name,
+  **Remove from list** (keeps the files), and **Remove and delete data…** (always asks first).
+- **Several servers:** switch with the arrow next to the server name. Each server keeps its own password.
+- **Watch folders:** new `.torrent` files in chosen folders are uploaded once fully written, retried when the server is
+  unreachable, and optionally moved to an `Added` subfolder.
+- **Notifications** when a download finishes or a torrent reports an error.
+- **Keyboard:** `Ctrl+Alt+T` shows or hides the panel from anywhere. In the list, Space pauses or resumes, Delete removes,
+  Shift+Delete deletes with data, and the menu key opens the row menu. Esc hides the panel.
+- **Pin** keeps the panel open while you work in other windows.
+- Light and dark mode follow Windows.
 
 ## Transmission compatibility
 
@@ -32,36 +37,29 @@ Tested with Transmission 4.0.6 and 4.1.3, including a server with 1,200 torrents
 
 Keep RPC reachable only on a trusted LAN, a VPN, or behind an HTTPS reverse proxy with authentication.
 
-## Requirements
+## Data locations
 
-- Windows 11 x64
-- .NET 10 SDK
+- Settings and server profiles: `%LOCALAPPDATA%\Torray\settings.json`
+- Passwords: `%LOCALAPPDATA%\Torray\secrets\`, encrypted with Windows DPAPI for the current user, never in settings or logs
+- Logs: `%LOCALAPPDATA%\Torray\logs\` (daily files, 14 kept, 10 MB maximum each)
 
-## Build, test, run
+## Development
+
+Requires Windows 11 x64 and the .NET 10 SDK.
 
 ```powershell
 dotnet build Torray.slnx
 dotnet test Torray.slnx
 dotnet run --project src/Torray.App
+./scripts/pack.ps1   # local installer in artifacts/releases
 ```
 
-To publish a release, set `<Version>` in `Directory.Build.props`, commit, and push a matching tag (for example `v0.6.0`).
-The release workflow builds the installer and publishes it as a GitHub release; installed copies update from there.
+To release, set `<Version>` in `Directory.Build.props`, commit, and push a matching tag such as `v0.7.0`.
+The release workflow builds the installer and publishes the GitHub release that installed copies update from.
 
-Build the installer locally with `./scripts/pack.ps1`. It writes `artifacts/releases/TorrayApp-win-Setup.exe`.
-The installer is not code-signed yet, so Windows SmartScreen shows a warning.
-
-Left-click the tray icon to toggle the flyout. Right-click it for the menu. Esc or a click elsewhere hides the flyout.
-Set up the server under **Connection** in the tray menu or the flyout.
-
-Not implemented yet (spec P1): a drop target on the taskbar or tray icon, a clipboard magnet helper, file selection
-and priorities, editing per-torrent speed limits, search and multi-select in the list, and daemon-to-Windows path mapping.
-
-## Data locations
-
-- Settings and server profiles: `%LOCALAPPDATA%\Torray\settings.json`
-- Passwords: `%LOCALAPPDATA%\Torray\secrets\` (one per server, encrypted with Windows DPAPI for the current user, never in settings or logs)
-- Logs: `%LOCALAPPDATA%\Torray\logs\` (daily files, 14 kept, 10 MB maximum each)
+See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification. Not implemented yet (spec P1): a drop target on the
+tray icon, a clipboard magnet helper, file selection and priorities, per-torrent speed limits, search and multi-select,
+and daemon-to-Windows path mapping.
 
 ## License
 
